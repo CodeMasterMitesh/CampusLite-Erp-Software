@@ -2,7 +2,7 @@
 // app/views/reports.php
 include __DIR__ . '/partials/nav.php';
 ?>
-<div class="container dashboard-container">
+<div class="container dashboard-container fade-in">
     <div class="dashboard-header">
         <h2 class="dashboard-title">Reports</h2>
         <div class="dashboard-controls">

@@ -54,6 +54,9 @@ switch ($page) {
     case 'reports':
         require_once __DIR__ . '/app/views/reports.php';
         break;
+        case 'company':
+        require_once __DIR__ . '/app/views/company.php';
+        break;
     default:
         echo 'Page not found.';
 }

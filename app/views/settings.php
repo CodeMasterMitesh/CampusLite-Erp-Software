@@ -12,7 +12,7 @@ include __DIR__ . '/partials/nav.php';
                 <div class="card-body d-flex flex-column align-items-center justify-content-center">
                     <i class="fas fa-building fa-2x mb-2"></i>
                     <h5 class="card-title">Company</h5>
-                    <a href="#" class="btn btn-light mt-2">Manage Company</a>
+                    <a href="index.php?page=company" class="btn btn-light mt-2">Manage Company</a>
                 </div>
             </div>
         </div>
@@ -30,7 +30,7 @@ include __DIR__ . '/partials/nav.php';
                 <div class="card-body d-flex flex-column align-items-center justify-content-center">
                     <i class="fas fa-book fa-2x mb-2"></i>
                     <h5 class="card-title">Courses</h5>
-                    <a href="#" class="btn btn-light mt-2">Manage Courses</a>
+                    <a href="index.php?page=courses" class="btn btn-light mt-2">Manage Courses</a>
                 </div>
             </div>
         </div>
@@ -39,7 +39,7 @@ include __DIR__ . '/partials/nav.php';
                 <div class="card-body d-flex flex-column align-items-center justify-content-center">
                     <i class="fas fa-money-check-alt fa-2x mb-2"></i>
                     <h5 class="card-title">Salaries</h5>
-                    <a href="#" class="btn btn-light mt-2">Manage Salaries</a>
+                    <a href="index.php?page=salaries" class="btn btn-light mt-2">Manage Salaries</a>
                 </div>
             </div>
         </div>

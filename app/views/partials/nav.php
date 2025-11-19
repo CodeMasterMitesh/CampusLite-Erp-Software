@@ -16,12 +16,6 @@
             CampusLite ERP
         </a>
 
-        <!-- Search Box -->
-        <div class="navbar-search d-none d-lg-flex position-relative">
-            <i class="fas fa-search search-icon"></i>
-            <input class="form-control" type="search" placeholder="Search..." aria-label="Search">
-        </div>
-
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>

@@ -1,31 +1,26 @@
 <?php
-// api/users.php
-require_once __DIR__ . '/../config/db.php';
-$action = $_GET['action'] ?? '';
 header('Content-Type: application/json');
-if ($action === 'list') {
-    $result = mysqli_query($conn, "SELECT * FROM users");
-    $users = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $users[] = $row;
+require_once __DIR__ . '/../app/controllers/UserController.php';
+
+$action = $_REQUEST['action'] ?? ($_SERVER['REQUEST_METHOD']==='GET' ? 'list' : 'create');
+try {
+    switch ($action) {
+        case 'list':
+            $rows = UserController::getAll();
+            echo json_encode(['success'=>true,'data'=>$rows]);
+            break;
+        case 'create':
+            $ok = UserController::create($_POST['branch_id'] ?? null, $_POST['role'] ?? 'staff', $_POST['name'] ?? '', $_POST['email'] ?? '', $_POST['password'] ?? 'password', $_POST['mobile'] ?? '', $_POST['is_part_time'] ?? 0);
+            echo json_encode(['success'=>(bool)$ok]);
+            break;
+        case 'delete':
+            require_once __DIR__ . '/../config/db.php';
+            $id = intval($_POST['id'] ?? 0);
+            $res = mysqli_query($conn, "DELETE FROM users WHERE id = $id");
+            echo json_encode(['success'=>(bool)$res]);
+            break;
+        default:
+            echo json_encode(['success'=>false,'message'=>'Unknown action']);
     }
-    echo json_encode(['success' => true, 'users' => $users]);
-    exit;
-}
-if ($action === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $branch_id = $_POST['branch_id'] ?? null;
-    $role = $_POST['role'] ?? '';
-    $name = $_POST['name'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $mobile = $_POST['mobile'] ?? '';
-    $is_part_time = $_POST['is_part_time'] ?? 0;
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = mysqli_prepare($conn, "INSERT INTO users (branch_id, role, name, email, password, mobile, is_part_time) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, 'isssssi', $branch_id, $role, $name, $email, $hashed_password, $mobile, $is_part_time);
-    $success = mysqli_stmt_execute($stmt);
-    echo json_encode(['success' => $success]);
-    exit;
-}
-echo json_encode(['success' => false, 'message' => 'Invalid action']);
-?>
+} catch(Exception $e){ echo json_encode(['success'=>false,'error'=>$e->getMessage()]); }
+

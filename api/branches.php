@@ -1,25 +1,26 @@
 <?php
-// api/branches.php
-require_once __DIR__ . '/../config/db.php';
-$action = $_GET['action'] ?? '';
 header('Content-Type: application/json');
-if ($action === 'list') {
-    $result = mysqli_query($conn, "SELECT * FROM branches");
-    $branches = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $branches[] = $row;
+require_once __DIR__ . '/../app/controllers/BranchController.php';
+
+$action = $_REQUEST['action'] ?? ($_SERVER['REQUEST_METHOD']==='GET' ? 'list' : 'create');
+try {
+    switch ($action) {
+        case 'list':
+            $rows = BranchController::getAll();
+            echo json_encode(['success'=>true,'data'=>$rows]);
+            break;
+        case 'create':
+            $ok = BranchController::create($_POST['name'] ?? '', $_POST['address'] ?? '');
+            echo json_encode(['success'=>(bool)$ok]);
+            break;
+        case 'delete':
+            require_once __DIR__ . '/../config/db.php';
+            $id = intval($_POST['id'] ?? 0);
+            $res = mysqli_query($conn, "DELETE FROM branches WHERE id = $id");
+            echo json_encode(['success'=>(bool)$res]);
+            break;
+        default:
+            echo json_encode(['success'=>false,'message'=>'Unknown action']);
     }
-    echo json_encode(['success' => true, 'branches' => $branches]);
-    exit;
-}
-if ($action === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = $_POST['name'] ?? '';
-    $address = $_POST['address'] ?? '';
-    $stmt = mysqli_prepare($conn, "INSERT INTO branches (company_id, name, address) VALUES (1, ?, ?)");
-    mysqli_stmt_bind_param($stmt, 'ss', $name, $address);
-    $success = mysqli_stmt_execute($stmt);
-    echo json_encode(['success' => $success]);
-    exit;
-}
-echo json_encode(['success' => false, 'message' => 'Invalid action']);
-?>
+} catch(Exception $e){ echo json_encode(['success'=>false,'error'=>$e->getMessage()]); }
+

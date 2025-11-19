@@ -1,12 +1,8 @@
-<footer class="footer">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6">
-                <p>&copy; 2023 CampusLite ERP. All rights reserved.</p>
-            </div>
-            <div class="col-md-6 text-md-end">
-                <a href="#" class="text-decoration-none me-3">Privacy Policy</a>
-                <a href="#" class="text-decoration-none">Terms of Service</a>
+<footer class="footer bg-light border-top">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <span class="text-muted d-block w-100 text-center">&copy; <?= date('Y') ?> Tuition360. All rights reserved.</span>
             </div>
         </div>
     </div>

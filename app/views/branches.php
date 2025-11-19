@@ -10,26 +10,17 @@ $totalPages = 1;
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
         <!-- Breadcrumbs -->
-        <div class="breadcrumb-container">
+        <div class="breadcrumb-container d-flex justify-content-between align-items-center">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="index.php?page=dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
                     <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-code-branch"></i> Branches</li>
                 </ol>
             </nav>
-        </div>
-
-        <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="mb-1">Branches Management</h2>
-                <p class="text-muted mb-0">Manage all campus branches and their information</p>
-            </div>
             <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addBranchModal">
                 <i class="fas fa-plus"></i> Add New Branch
             </button>
         </div>
-
         <!-- Table Container -->
         <div class="advanced-table-container">
             <!-- Table Controls -->

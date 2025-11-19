@@ -1,33 +1,26 @@
 <?php
-// api/courses.php
-require_once __DIR__ . '/../config/db.php';
-$action = $_GET['action'] ?? '';
 header('Content-Type: application/json');
-if ($action === 'list') {
-    $branch_id = $_GET['branch_id'] ?? null;
-    $sql = "SELECT * FROM courses";
-    if ($branch_id) {
-        $sql .= " WHERE branch_id = " . intval($branch_id);
+require_once __DIR__ . '/../app/controllers/CourseController.php';
+
+$action = $_REQUEST['action'] ?? ($_SERVER['REQUEST_METHOD']==='GET' ? 'list' : 'create');
+try {
+    switch ($action) {
+        case 'list':
+            $rows = CourseController::getAll();
+            echo json_encode(['success'=>true,'data'=>$rows]);
+            break;
+        case 'create':
+            $ok = CourseController::create(intval($_POST['branch_id'] ?? 0), $_POST['title'] ?? '', $_POST['description'] ?? '', floatval($_POST['total_fee'] ?? 0), intval($_POST['duration_months'] ?? 0));
+            echo json_encode(['success'=>(bool)$ok]);
+            break;
+        case 'delete':
+            require_once __DIR__ . '/../config/db.php';
+            $id = intval($_POST['id'] ?? 0);
+            $res = mysqli_query($conn, "DELETE FROM courses WHERE id = $id");
+            echo json_encode(['success'=>(bool)$res]);
+            break;
+        default:
+            echo json_encode(['success'=>false,'message'=>'Unknown action']);
     }
-    $result = mysqli_query($conn, $sql);
-    $courses = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $courses[] = $row;
-    }
-    echo json_encode(['success' => true, 'courses' => $courses]);
-    exit;
-}
-if ($action === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $branch_id = $_POST['branch_id'] ?? null;
-    $title = $_POST['title'] ?? '';
-    $description = $_POST['description'] ?? '';
-    $total_fee = $_POST['total_fee'] ?? 0;
-    $duration_months = $_POST['duration_months'] ?? 0;
-    $stmt = mysqli_prepare($conn, "INSERT INTO courses (branch_id, title, description, total_fee, duration_months) VALUES (?, ?, ?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, 'issdi', $branch_id, $title, $description, $total_fee, $duration_months);
-    $success = mysqli_stmt_execute($stmt);
-    echo json_encode(['success' => $success]);
-    exit;
-}
-echo json_encode(['success' => false, 'message' => 'Invalid action']);
-?>
+} catch(Exception $e){ echo json_encode(['success'=>false,'error'=>$e->getMessage()]); }
+

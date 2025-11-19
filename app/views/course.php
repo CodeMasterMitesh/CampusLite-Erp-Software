@@ -1,0 +1,106 @@
+<?php
+// app/views/course.php (single-course manager)
+$courses = [];
+$controllerFile = __DIR__ . '/../controllers/CourseController.php';
+if (file_exists($controllerFile)) {
+    require_once $controllerFile;
+    $cls = 'CourseController';
+    if (class_exists($cls) && method_exists($cls, 'getAll')) {
+        $courses = $cls::getAll();
+    }
+}
+$search = $_GET['search'] ?? '';
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+$total = count($courses);
+$totalPages = 1;
+?>
+<?php include __DIR__ . '/partials/nav.php'; ?>
+<div class="container-fluid dashboard-container fade-in">
+    <div class="breadcrumb-container d-flex justify-content-between align-items-center">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="index.php?page=dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-graduation-cap"></i> Courses</li>
+            </ol>
+        </nav>
+        <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addCourseModal"><i class="fas fa-plus"></i> Add Course</button>
+    </div>
+    <div class="advanced-table-container">
+        <div class="table-controls">
+            <div class="table-header">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search courses..." value="<?= htmlspecialchars($search) ?>">
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-success btn-action" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
+                    <button class="btn btn-secondary btn-action" onclick="printTable()"><i class="fas fa-print"></i> Print</button>
+                    <button class="btn btn-info btn-action" onclick="refreshTable()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+            </div>
+        </div>
+        <div class="table-responsive position-relative" id="tableContainer">
+            <table class="table data-table" id="courses-table">
+                <thead>
+                    <tr>
+                        <th width="80">ID</th>
+                        <th>Title</th>
+                        <th>Branch</th>
+                        <th>Total Fee</th>
+                        <th>Duration</th>
+                        <th width="150" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <?php if (empty($courses)): ?>
+                        <tr><td colspan="6"><div class="empty-state"><i class="fas fa-inbox"></i><h4>No courses found</h4><p>No courses match your search criteria</p><button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal"><i class="fas fa-plus"></i> Add Course</button></div></td></tr>
+                    <?php else: ?>
+                        <?php foreach ($courses as $c): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($c['id'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($c['title'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($c['branch_id'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($c['total_fee'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($c['duration_months'] ?? '') ?> months</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-outline-primary btn-table" onclick="editCourse(<?= $c['id'] ?? 0 ?>)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger btn-table" onclick="deleteCourse(<?= $c['id'] ?? 0 ?>)"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Course Modal -->
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Add Course</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" required></div>
+                    <div class="mb-3"><label class="form-label">Branch</label><input class="form-control" name="branch"></div>
+                    <div class="mb-3"><label class="form-label">Total Fee</label><input type="number" class="form-control" name="total_fee"></div>
+                    <div class="mb-3"><label class="form-label">Duration (months)</label><input type="number" class="form-control" name="duration_months"></div>
+                </form>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" onclick="saveCourse()">Save</button></div>
+        </div>
+    </div>
+</div>
+<?php include __DIR__ . '/partials/footer.php'; ?>
+<script>
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function(e){ clearTimeout(searchTimeout); searchTimeout=setTimeout(()=>{ const v=e.target.value.toLowerCase(); document.querySelectorAll('#courses-table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(v)?'':'none'); },200);} );
+    document.addEventListener('DOMContentLoaded', ()=>document.querySelector('.dashboard-container').classList.add('show'));
+    function exportToExcel(){ showLoading(); setTimeout(()=>{ window.location.href='?page=courses&export=excel'; hideLoading(); },800);} function printTable(){ const table=document.getElementById('courses-table').cloneNode(true); const w=window.open('','_blank'); w.document.write(`<html><head><title>Courses</title></head><body><h2>Courses</h2>${table.outerHTML}</body></html>`); w.document.close(); w.print(); }
+    function refreshTable(){ showLoading(); setTimeout(()=>location.reload(),600);} function showLoading(){ const c=document.getElementById('tableContainer'); const o=document.createElement('div'); o.className='loading-overlay'; o.innerHTML='<div class="spinner-border text-primary spinner" role="status"><span class="visually-hidden">Loading...</span></div>'; c.style.position='relative'; c.appendChild(o);} function hideLoading(){ const o=document.querySelector('.loading-overlay'); if(o) o.remove(); }
+    function editCourse(id){ alert('Edit '+id);} function deleteCourse(id){ if(confirm('Delete course '+id+'?')){ showLoading(); setTimeout(()=>{ alert('Deleted'); hideLoading(); refreshTable(); },900);} }
+    function saveCourse(){ alert('Saved'); document.getElementById('addCourseModal').querySelector('.btn-close')?.click(); refreshTable(); }
+</script>
