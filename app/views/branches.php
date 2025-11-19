@@ -162,6 +162,7 @@ $totalPages = 1;
                 </div>
                 <div class="modal-body">
                     <form id="addBranchForm">
+                        <input type="hidden" name="id" id="branchId" value="">
                         <div class="mb-3">
                             <label class="form-label">Branch Name</label>
                             <input type="text" class="form-control" name="name" required>
@@ -215,10 +216,10 @@ $totalPages = 1;
 
         // Export to Excel
         function exportToExcel() {
-            showLoading();
+            CRUD.showLoading('tableContainer');
             setTimeout(() => {
                 window.location.href = '?page=branches&export=excel';
-                hideLoading();
+                CRUD.hideLoading();
             }, 1000);
         }
 
@@ -252,60 +253,49 @@ $totalPages = 1;
 
         // Refresh table
         function refreshTable() {
-            showLoading();
+            CRUD.showLoading('tableContainer');
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         }
 
-        // Loading states
-        function showLoading() {
-            const container = document.getElementById('tableContainer');
-            const overlay = document.createElement('div');
-            overlay.className = 'loading-overlay';
-            overlay.innerHTML = `
-                <div class="spinner-border text-primary spinner" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            `;
-            container.style.position = 'relative';
-            container.appendChild(overlay);
-        }
-
-        function hideLoading() {
-            const overlay = document.querySelector('.loading-overlay');
-            if (overlay) overlay.remove();
-        }
+        // Use shared CRUD.showLoading / CRUD.hideLoading
 
         // Branch management functions
-        function editBranch(id) {
-            alert(`Edit branch with ID: ${id}`);
-            // Implement edit functionality
-        }
-
-        function viewBranch(id) {
-            alert(`View branch with ID: ${id}`);
-            // Implement view functionality
-        }
-
-        function deleteBranch(id) {
-            if (confirm('Are you sure you want to delete this branch?')) {
-                showLoading();
-                // Implement delete functionality
-                setTimeout(() => {
-                    alert(`Branch ${id} deleted successfully`);
-                    hideLoading();
+        async function saveBranch() {
+            const form = document.getElementById('addBranchForm');
+            const params = new FormData(form);
+            if (!params.get('name')) { CRUD.toastError('Name is required'); return; }
+            const modalEl = document.getElementById('addBranchModal');
+            CRUD.modalLoadingStart(modalEl);
+            try {
+                const data = await CRUD.post('api/branches.php?action=create', params);
+                if (data.success) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.hide();
+                    CRUD.toastSuccess(data.message || 'Saved');
                     refreshTable();
-                }, 1500);
-            }
+                } else {
+                    CRUD.toastError('Save failed: ' + (data.message || data.error || 'Unknown'));
+                }
+            } catch (e) {
+                CRUD.toastError('Request failed: ' + e.message);
+            } finally { CRUD.modalLoadingStop(modalEl); }
         }
 
-        function saveBranch() {
-            // Implement save functionality
-            alert('Branch saved successfully');
-            document.getElementById('addBranchModal').querySelector('.btn-close').click();
-            refreshTable();
+        async function deleteBranch(id) {
+            if (!confirm('Are you sure you want to delete this branch?')) return;
+            CRUD.showLoading('tableContainer');
+            try {
+                const params = new URLSearchParams(); params.append('id', id);
+                const data = await CRUD.post('api/branches.php?action=delete', params);
+                if (data.success){ CRUD.toastSuccess(data.message || 'Deleted'); refreshTable(); } else CRUD.toastError('Delete failed: ' + (data.message || data.error || 'Unknown'));
+            } catch (e) { CRUD.toastError('Delete request failed: ' + e.message); }
+            finally { CRUD.hideLoading(); }
         }
+
+        function editBranch(id) { CRUD.toastError('Edit not implemented for branches yet.'); }
+        function viewBranch(id) { CRUD.toastError('View not implemented for branches yet.'); }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {

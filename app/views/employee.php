@@ -13,6 +13,13 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $totalEmployees = count($employees);
 $totalPages = 1;
+// load branches
+$branchFile = __DIR__ . '/../controllers/BranchController.php';
+$branches = [];
+if (file_exists($branchFile)) {
+    require_once $branchFile;
+    if (class_exists('BranchController') && method_exists('BranchController','getAll')) $branches = BranchController::getAll();
+}
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
@@ -157,6 +164,7 @@ $totalPages = 1;
             </div>
             <div class="modal-body">
                 <form id="addEmployeeForm">
+                    <input type="hidden" name="id" id="employeeId" value="">
                     <div class="mb-3">
                         <label class="form-label">Employee Name</label>
                         <input type="text" class="form-control" name="name" required>
@@ -171,7 +179,12 @@ $totalPages = 1;
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Branch</label>
-                        <input type="text" class="form-control" name="branch" required>
+                        <select class="form-control" name="branch_id" id="employeeBranch" required>
+                            <option value="0">-- Select Branch --</option>
+                            <?php foreach ($branches as $b): ?>
+                                <option value="<?= intval($b['id']) ?>"><?= htmlspecialchars($b['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </form>
             </div>
@@ -259,31 +272,10 @@ $totalPages = 1;
         if (overlay) overlay.remove();
     }
     // Employee management functions
-    function editEmployee(id) {
-        alert(`Edit employee with ID: ${id}`);
-        // Implement edit functionality
-    }
-    function viewEmployee(id) {
-        alert(`View employee with ID: ${id}`);
-        // Implement view functionality
-    }
-    function deleteEmployee(id) {
-        if (confirm('Are you sure you want to delete this employee?')) {
-            showLoading();
-            // Implement delete functionality
-            setTimeout(() => {
-                alert(`Employee ${id} deleted successfully`);
-                hideLoading();
-                refreshTable();
-            }, 1500);
-        }
-    }
-    function saveEmployee() {
-        // Implement save functionality
-        alert('Employee saved successfully');
-        document.getElementById('addEmployeeModal').querySelector('.btn-close').click();
-        refreshTable();
-    }
+    async function editEmployee(id){ CRUD.showLoading('tableContainer'); try{ const res=await CRUD.get(`api/employee.php?action=get&id=${encodeURIComponent(id)}`); if(res.success&&res.data){ const e=res.data; document.getElementById('employeeId').value=e.id||''; document.querySelector('#addEmployeeForm [name="name"]').value=e.name||''; document.querySelector('#addEmployeeForm [name="email"]').value=e.email||''; document.querySelector('#addEmployeeForm [name="phone"]').value=e.mobile||e.phone||''; document.getElementById('employeeBranch').value=e.branch_id||0; const modalEl=document.getElementById('addEmployeeModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show(); } else alert('Employee not found'); }catch(e){ alert('Failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+    async function viewEmployee(id){ await editEmployee(id); const form=document.getElementById('addEmployeeForm'); Array.from(form.elements).forEach(el=>el.disabled=true); const saveBtn=document.querySelector('#addEmployeeModal .btn-primary'); if(saveBtn) saveBtn.style.display='none'; document.querySelector('#addEmployeeModal .modal-title').innerText='View Employee'; }
+    async function deleteEmployee(id){ if(!confirm('Delete employee '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res=await CRUD.post('api/employee.php?action=delete', p); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+    async function saveEmployee(){ const form=document.getElementById('addEmployeeForm'); const params=new FormData(form); if(!params.get('name')){ alert('Name required'); return;} CRUD.showLoading('tableContainer'); try{ const id=params.get('id'); const action = id ? 'update' : 'create'; const res=await CRUD.post('api/employee.php?action='+action, params); if(res.success){ const modalEl=document.getElementById('addEmployeeModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'f') {

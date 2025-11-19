@@ -13,6 +13,13 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $totalFaculty = count($faculty);
 $totalPages = 1;
+// load branches
+$branchFile = __DIR__ . '/../controllers/BranchController.php';
+$branches = [];
+if (file_exists($branchFile)) {
+    require_once $branchFile;
+    if (class_exists('BranchController') && method_exists('BranchController','getAll')) $branches = BranchController::getAll();
+}
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
@@ -157,6 +164,7 @@ $totalPages = 1;
             </div>
             <div class="modal-body">
                 <form id="addFacultyForm">
+                    <input type="hidden" name="id" id="facultyId" value="">
                     <div class="mb-3">
                         <label class="form-label">Faculty Name</label>
                         <input type="text" class="form-control" name="name" required>
@@ -171,7 +179,12 @@ $totalPages = 1;
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Branch</label>
-                        <input type="text" class="form-control" name="branch" required>
+                        <select class="form-control" name="branch_id" id="facultyBranch" required>
+                            <option value="0">-- Select Branch --</option>
+                            <?php foreach ($branches as $b): ?>
+                                <option value="<?= intval($b['id']) ?>"><?= htmlspecialchars($b['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </form>
             </div>
@@ -259,31 +272,10 @@ $totalPages = 1;
         if (overlay) overlay.remove();
     }
     // Faculty management functions
-    function editFaculty(id) {
-        alert(`Edit faculty with ID: ${id}`);
-        // Implement edit functionality
-    }
-    function viewFaculty(id) {
-        alert(`View faculty with ID: ${id}`);
-        // Implement view functionality
-    }
-    function deleteFaculty(id) {
-        if (confirm('Are you sure you want to delete this faculty?')) {
-            showLoading();
-            // Implement delete functionality
-            setTimeout(() => {
-                alert(`Faculty ${id} deleted successfully`);
-                hideLoading();
-                refreshTable();
-            }, 1500);
-        }
-    }
-    function saveFaculty() {
-        // Implement save functionality
-        alert('Faculty saved successfully');
-        document.getElementById('addFacultyModal').querySelector('.btn-close').click();
-        refreshTable();
-    }
+    async function editFaculty(id){ CRUD.showLoading('tableContainer'); try{ const res = await CRUD.get(`api/faculty.php?action=get&id=${encodeURIComponent(id)}`); if(res.success && res.data){ const f = res.data; document.getElementById('facultyId').value = f.id||''; document.querySelector('#addFacultyForm [name="name"]').value = f.name||''; document.querySelector('#addFacultyForm [name="email"]').value = f.email||''; document.querySelector('#addFacultyForm [name="phone"]').value = f.mobile||f.phone||''; document.getElementById('facultyBranch').value = f.branch_id||0; const modalEl = document.getElementById('addFacultyModal'); const modal = bootstrap.Modal.getOrCreateInstance(modalEl); modal.show(); } else alert('Faculty not found'); }catch(e){ alert('Failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+    async function viewFaculty(id){ await editFaculty(id); const form=document.getElementById('addFacultyForm'); Array.from(form.elements).forEach(el=>el.disabled=true); const saveBtn=document.querySelector('#addFacultyModal .btn-primary'); if(saveBtn) saveBtn.style.display='none'; document.querySelector('#addFacultyModal .modal-title').innerText='View Faculty'; }
+    async function deleteFaculty(id){ if(!confirm('Delete faculty '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res = await CRUD.post('api/faculty.php?action=delete', p); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+    async function saveFaculty(){ const form=document.getElementById('addFacultyForm'); const params=new FormData(form); if(!params.get('name')){ alert('Name required'); return;} CRUD.showLoading('tableContainer'); try{ const id=params.get('id'); const action = id ? 'update' : 'create'; const res = await CRUD.post('api/faculty.php?action='+action, params); if(res.success){ const modalEl=document.getElementById('addFacultyModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'f') {

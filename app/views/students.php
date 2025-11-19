@@ -13,6 +13,13 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $totalStudents = count($students);
 $totalPages = 1;
+// load branches for dropdown
+$branchFile = __DIR__ . '/../controllers/BranchController.php';
+$branches = [];
+if (file_exists($branchFile)) {
+    require_once $branchFile;
+    if (class_exists('BranchController') && method_exists('BranchController','getAll')) $branches = BranchController::getAll();
+}
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
@@ -157,6 +164,7 @@ $totalPages = 1;
             </div>
             <div class="modal-body">
                 <form id="addStudentForm">
+                    <input type="hidden" name="id" id="studentId" value="">
                     <div class="mb-3">
                         <label class="form-label">Student Name</label>
                         <input type="text" class="form-control" name="name" required>
@@ -167,11 +175,16 @@ $totalPages = 1;
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Phone</label>
-                        <input type="tel" class="form-control" name="phone" required>
+                        <input type="tel" class="form-control" name="mobile" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Branch</label>
-                        <input type="text" class="form-control" name="branch" required>
+                        <select class="form-control" name="branch_id" id="studentBranch" required>
+                            <option value="0">-- Select Branch --</option>
+                            <?php foreach ($branches as $b): ?>
+                                <option value="<?= intval($b['id']) ?>"><?= htmlspecialchars($b['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </form>
             </div>
@@ -203,10 +216,10 @@ $totalPages = 1;
     });
     // Export to Excel
     function exportToExcel() {
-        showLoading();
+        CRUD.showLoading('tableContainer');
         setTimeout(() => {
             window.location.href = '?page=students&export=excel';
-            hideLoading();
+            CRUD.hideLoading();
         }, 1000);
     }
     // Print table
@@ -236,53 +249,120 @@ $totalPages = 1;
     }
     // Refresh table
     function refreshTable() {
-        showLoading();
+        CRUD.showLoading('tableContainer');
         setTimeout(() => {
             window.location.reload();
         }, 1000);
     }
-    // Loading states
-    function showLoading() {
-        const container = document.getElementById('tableContainer');
-        const overlay = document.createElement('div');
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div class="spinner-border text-primary spinner" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        `;
-        container.style.position = 'relative';
-        container.appendChild(overlay);
-    }
-    function hideLoading() {
-        const overlay = document.querySelector('.loading-overlay');
-        if (overlay) overlay.remove();
-    }
+    // Use shared CRUD loading helpers (CRUD.showLoading / CRUD.hideLoading)
     // Student management functions
-    function editStudent(id) {
-        alert(`Edit student with ID: ${id}`);
-        // Implement edit functionality
-    }
-    function viewStudent(id) {
-        alert(`View student with ID: ${id}`);
-        // Implement view functionality
-    }
-    function deleteStudent(id) {
-        if (confirm('Are you sure you want to delete this student?')) {
-            showLoading();
-            // Implement delete functionality
-            setTimeout(() => {
-                alert(`Student ${id} deleted successfully`);
-                hideLoading();
-                refreshTable();
-            }, 1500);
+    // Mode handling for modal (edit/view)
+    function setModalMode(mode) {
+        const form = document.getElementById('addStudentForm');
+        const saveBtn = document.querySelector('#addStudentModal .btn-primary');
+        if (mode === 'view') {
+            Array.from(form.elements).forEach(el => el.disabled = true);
+            saveBtn.style.display = 'none';
+            document.querySelector('#addStudentModal .modal-title').innerText = 'View Student';
+        } else {
+            Array.from(form.elements).forEach(el => el.disabled = false);
+            saveBtn.style.display = '';
+            document.querySelector('#addStudentModal .modal-title').innerText = mode === 'edit' ? 'Edit Student' : 'Add New Student';
         }
     }
-    function saveStudent() {
-        // Implement save functionality
-        alert('Student saved successfully');
-        document.getElementById('addStudentModal').querySelector('.btn-close').click();
-        refreshTable();
+
+    async function editStudent(id) {
+        CRUD.showLoading('tableContainer');
+        try {
+            const res = await fetch(`api/students.php?action=get&id=${encodeURIComponent(id)}`);
+            const data = await res.json();
+            if (data.success && data.data) {
+                const s = data.data;
+                document.getElementById('studentId').value = s.id || '';
+                document.querySelector('#addStudentForm [name="name"]').value = s.name || '';
+                document.querySelector('#addStudentForm [name="email"]').value = s.email || '';
+                document.querySelector('#addStudentForm [name="mobile"]').value = s.mobile || s.phone || '';
+                document.getElementById('studentBranch').value = s.branch_id ?? 0;
+                setModalMode('edit');
+                const modalEl = document.getElementById('addStudentModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                CRUD.toastError('Student not found');
+            }
+        } catch (e) {
+            CRUD.toastError('Failed to load student: ' + e.message);
+        } finally { CRUD.hideLoading(); }
+    }
+
+    async function viewStudent(id) {
+        CRUD.showLoading('tableContainer');
+        try {
+            const res = await fetch(`api/students.php?action=get&id=${encodeURIComponent(id)}`);
+            const data = await res.json();
+            if (data.success && data.data) {
+                const s = data.data;
+                document.getElementById('studentId').value = s.id || '';
+                document.querySelector('#addStudentForm [name="name"]').value = s.name || '';
+                document.querySelector('#addStudentForm [name="email"]').value = s.email || '';
+                document.querySelector('#addStudentForm [name="mobile"]').value = s.mobile || s.phone || '';
+                document.getElementById('studentBranch').value = s.branch_id ?? 0;
+                setModalMode('view');
+                const modalEl = document.getElementById('addStudentModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                CRUD.toastError('Student not found');
+            }
+        } catch (e) {
+            CRUD.toastError('Failed to load student: ' + e.message);
+        } finally { CRUD.hideLoading(); }
+    }
+
+    async function deleteStudent(id) {
+        if (!confirm('Are you sure you want to delete this student?')) return;
+        CRUD.showLoading('tableContainer');
+        try {
+            const params = new URLSearchParams();
+            params.append('id', id);
+            const res = await fetch('api/students.php?action=delete', { method: 'POST', body: params });
+            const data = await res.json();
+            if (data.success) {
+                CRUD.toastSuccess(data.message || 'Deleted');
+                refreshTable();
+            } else {
+                CRUD.toastError('Delete failed: ' + (data.message || data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            CRUD.toastError('Delete request failed: ' + e.message);
+        } finally { CRUD.hideLoading(); }
+    }
+
+    async function saveStudent() {
+        const form = document.getElementById('addStudentForm');
+        const formData = new FormData(form);
+        // Ensure required fields for backend
+        if (!formData.get('name')) { CRUD.toastError('Name is required'); return; }
+        if (!formData.get('email')) { CRUD.toastError('Email is required'); return; }
+        if (!formData.get('branch_id')) formData.set('branch_id', 0);
+        const modalEl = document.getElementById('addStudentModal');
+        CRUD.modalLoadingStart(modalEl);
+        try {
+            const id = formData.get('id');
+            const action = id ? 'update' : 'create';
+            const res = await fetch('api/students.php?action=' + action, { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.hide();
+                CRUD.toastSuccess(data.message || 'Saved');
+                refreshTable();
+            } else {
+                CRUD.toastError('Save failed: ' + (data.message || data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            CRUD.toastError('Save request failed: ' + e.message);
+        } finally { CRUD.modalLoadingStop(modalEl); }
     }
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {

@@ -1,5 +1,5 @@
 <?php
-header('Content-Type: application/json');
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../app/controllers/StudentController.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -9,32 +9,36 @@ try {
     switch ($action) {
         case 'list':
             $rows = StudentController::getAll();
-            echo json_encode(['success' => true, 'data' => $rows]);
+            send_json(true, null, $rows);
             break;
         case 'get':
             $id = intval($_GET['id'] ?? 0);
             $row = StudentController::get($id);
-            echo json_encode(['success' => true, 'data' => $row]);
+            if ($row) send_json(true, null, $row);
+            else send_json(false, 'Student not found');
             break;
         case 'create':
             $data = $_POST;
             $ok = StudentController::create($data);
-            echo json_encode(['success' => (bool)$ok]);
+            if ($ok) send_json(true, 'Student created');
+            else send_json(false, 'Failed to create student');
             break;
         case 'update':
             $id = intval($_POST['id'] ?? 0);
             $data = $_POST;
             $ok = StudentController::update($id, $data);
-            echo json_encode(['success' => (bool)$ok]);
+            if ($ok) send_json(true, 'Student updated');
+            else send_json(false, 'Failed to update student');
             break;
         case 'delete':
             $id = intval($_POST['id'] ?? $_GET['id'] ?? 0);
             $ok = StudentController::delete($id);
-            echo json_encode(['success' => (bool)$ok]);
+            if ($ok) send_json(true, 'Student deleted');
+            else send_json(false, 'Failed to delete student');
             break;
         default:
-            echo json_encode(['success' => false, 'message' => 'Unknown action']);
+            send_json(false, 'Unknown action');
     }
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    send_json(false, 'Server error', null, ['exception' => $e->getMessage()]);
 }

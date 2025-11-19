@@ -99,6 +99,7 @@ $totalPages = 1;
             </div>
             <div class="modal-body">
                 <form id="addSubjectForm">
+                    <input type="hidden" name="id" id="subjectId" value="">
                     <div class="mb-3"><label class="form-label">Title</label><input type="text" class="form-control" name="title" required></div>
                     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
                 </form>
@@ -120,10 +121,10 @@ $totalPages = 1;
     document.addEventListener('DOMContentLoaded', () => document.querySelector('.dashboard-container').classList.add('show'));
 
     function exportToExcel() {
-        showLoading();
+        CRUD.showLoading('tableContainer');
         setTimeout(() => {
             window.location.href = '?page=subjects&export=excel';
-            hideLoading();
+            CRUD.hideLoading();
         }, 800);
     }
 
@@ -136,42 +137,59 @@ $totalPages = 1;
     }
 
     function refreshTable() {
-        showLoading();
+        CRUD.showLoading('tableContainer');
         setTimeout(() => location.reload(), 600);
     }
 
-    function showLoading() {
-        const c = document.getElementById('tableContainer');
-        const o = document.createElement('div');
-        o.className = 'loading-overlay';
-        o.innerHTML = '<div class="spinner-border text-primary spinner" role="status"><span class="visually-hidden">Loading...</span></div>';
-        c.style.position = 'relative';
-        c.appendChild(o);
+    async function editSubject(id) {
+        CRUD.showLoading('tableContainer');
+        try {
+            const res = await CRUD.get(`api/subjects.php?action=get&id=${encodeURIComponent(id)}`);
+            if (res.success && res.data) {
+                const s = res.data;
+                document.getElementById('subjectId').value = s.id || '';
+                document.querySelector('#addSubjectForm [name="title"]').value = s.title || '';
+                document.querySelector('#addSubjectForm [name="description"]').value = s.description || '';
+                const modalEl = document.getElementById('addSubjectModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                CRUD.toastError('Subject not found');
+            }
+        } catch (e) { CRUD.toastError('Failed to load: ' + e.message); }
+        finally { CRUD.hideLoading(); }
     }
 
-    function hideLoading() {
-        const o = document.querySelector('.loading-overlay');
-        if (o) o.remove();
+    async function deleteSubject(id) {
+        if (!confirm('Delete subject ' + id + '?')) return;
+        CRUD.showLoading('tableContainer');
+        try {
+            const params = new URLSearchParams(); params.append('id', id);
+            const res = await CRUD.post('api/subjects.php?action=delete', params);
+            if (res.success) { CRUD.toastSuccess(res.message || 'Deleted'); refreshTable(); } else CRUD.toastError('Delete failed');
+        } catch (e) { alert('Delete failed: ' + e.message); }
+        finally { CRUD.hideLoading(); }
     }
 
-    function editSubject(id) {
-        alert('Edit subject ' + id);
-    }
-
-    function deleteSubject(id) {
-        if (confirm('Delete subject ' + id + '?')) {
-            showLoading();
-            setTimeout(() => {
-                alert('Deleted ' + id);
-                hideLoading();
+    async function saveSubject() {
+        const form = document.getElementById('addSubjectForm');
+        const params = new FormData(form);
+        if (!params.get('title')) { CRUD.toastError('Title required'); return; }
+        const modalEl = document.getElementById('addSubjectModal');
+        CRUD.modalLoadingStart(modalEl);
+        try {
+            const id = params.get('id');
+            const action = id ? 'update' : 'create';
+            const res = await CRUD.post('api/subjects.php?action=' + action, params);
+            if (res.success) {
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('addSubjectModal'));
+                modal.hide();
+                CRUD.toastSuccess(res.message || 'Saved');
                 refreshTable();
-            }, 900);
-        }
-    }
-
-    function saveSubject() {
-        alert('Saved');
-        document.getElementById('addSubjectModal').querySelector('.btn-close')?.click();
-        refreshTable();
+            } else {
+                CRUD.toastError('Save failed: ' + (res.message || res.error || 'Unknown'));
+            }
+        } catch (e) { alert('Request failed: ' + e.message); }
+        finally { CRUD.modalLoadingStop(document.getElementById('addSubjectModal')); }
     }
 </script>

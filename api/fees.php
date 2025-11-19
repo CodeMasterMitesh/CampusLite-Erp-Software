@@ -18,6 +18,19 @@ if ($action === 'pay' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(['success' => $success]);
     exit;
 }
+if ($action === 'get') {
+    $id = intval($_GET['id'] ?? 0);
+    $result = mysqli_query($conn, "SELECT * FROM fees WHERE id = $id LIMIT 1");
+    $row = mysqli_fetch_assoc($result);
+    echo json_encode(['success' => (bool)$row, 'data' => $row]);
+    exit;
+}
+if ($action === 'delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = intval($_POST['id'] ?? 0);
+    $res = mysqli_query($conn, "DELETE FROM fees WHERE id = $id");
+    echo json_encode(['success' => (bool)$res]);
+    exit;
+}
 if ($action === 'outstanding') {
     $branch_id = $_GET['branch_id'] ?? null;
     $sql = "SELECT e.id AS enrollment_id, s.name AS student_name, c.title AS course_title, c.total_fee, IFNULL(SUM(f.amount),0) AS paid, (c.total_fee - IFNULL(SUM(f.amount),0)) AS outstanding FROM enrollments e JOIN students s ON e.student_id = s.id JOIN batches b ON e.batch_id = b.id JOIN courses c ON b.course_id = c.id LEFT JOIN fees f ON f.enrollment_id = e.id WHERE 1=1";

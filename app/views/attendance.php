@@ -153,6 +153,8 @@ $totalPages = 1;
             </div>
             <div class="modal-body">
                 <form id="addAttendanceForm">
+                    <input type="hidden" name="id" id="attendanceId" value="">
+                    <input type="hidden" name="branch_id" id="attendanceBranchId" value="0">
                     <div class="mb-3">
                         <label class="form-label">Student</label>
                         <input type="text" class="form-control" name="student" required>
@@ -254,30 +256,92 @@ $totalPages = 1;
         if (overlay) overlay.remove();
     }
     // Attendance management functions
-    function editAttendance(id) {
-        alert(`Edit attendance with ID: ${id}`);
-        // Implement edit functionality
+    async function editAttendance(id) {
+        showLoading();
+        try {
+            const res = await CRUD.get(`api/attendance.php?action=get&id=${encodeURIComponent(id)}`);
+            if (res.success && res.data) {
+                const a = res.data;
+                document.getElementById('attendanceId').value = a.id || '';
+                document.querySelector('#addAttendanceForm [name="student"]').value = a.student || '';
+                document.querySelector('#addAttendanceForm [name="date"]').value = a.date || '';
+                document.querySelector('#addAttendanceForm [name="status"]').value = a.status || 'present';
+                document.getElementById('attendanceBranchId').value = a.branch_id ?? 0;
+                setModalModeAttendance('edit');
+                const modalEl = document.getElementById('addAttendanceModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                alert('Record not found');
+            }
+        } catch (e) { alert('Failed to load record: ' + e.message); }
+        finally { CRUD.hideLoading(); }
     }
-    function viewAttendance(id) {
-        alert(`View attendance with ID: ${id}`);
-        // Implement view functionality
+
+    async function viewAttendance(id) {
+        showLoading();
+        try {
+            const res = await CRUD.get(`api/attendance.php?action=get&id=${encodeURIComponent(id)}`);
+            if (res.success && res.data) {
+                const a = res.data;
+                document.getElementById('attendanceId').value = a.id || '';
+                document.querySelector('#addAttendanceForm [name="student"]').value = a.student || '';
+                document.querySelector('#addAttendanceForm [name="date"]').value = a.date || '';
+                document.querySelector('#addAttendanceForm [name="status"]').value = a.status || 'present';
+                document.getElementById('attendanceBranchId').value = a.branch_id ?? 0;
+                setModalModeAttendance('view');
+                const modalEl = document.getElementById('addAttendanceModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                alert('Record not found');
+            }
+        } catch (e) { alert('Failed to load record: ' + e.message); }
+        finally { CRUD.hideLoading(); }
     }
-    function deleteAttendance(id) {
-        if (confirm('Are you sure you want to delete this attendance record?')) {
-            showLoading();
-            // Implement delete functionality
-            setTimeout(() => {
-                alert(`Attendance record ${id} deleted successfully`);
-                hideLoading();
-                refreshTable();
-            }, 1500);
+
+    async function deleteAttendance(id) {
+        if (!confirm('Are you sure you want to delete this attendance record?')) return;
+        CRUD.showLoading('tableContainer');
+        try {
+            const params = new URLSearchParams(); params.append('id', id);
+            const res = await CRUD.post('api/attendance.php?action=delete', params);
+            if (res.success) refreshTable(); else alert('Delete failed');
+        } catch (e) { alert('Delete request failed: ' + e.message); }
+        finally { CRUD.hideLoading(); }
+    }
+
+    function setModalModeAttendance(mode) {
+        const form = document.getElementById('addAttendanceForm');
+        const saveBtn = document.querySelector('#addAttendanceModal .btn-primary');
+        if (mode === 'view') {
+            Array.from(form.elements).forEach(el => el.disabled = true);
+            saveBtn.style.display = 'none';
+            document.querySelector('#addAttendanceModal .modal-title').innerText = 'View Attendance';
+        } else {
+            Array.from(form.elements).forEach(el => el.disabled = false);
+            saveBtn.style.display = '';
+            document.querySelector('#addAttendanceModal .modal-title').innerText = mode === 'edit' ? 'Edit Attendance' : 'Mark Attendance';
         }
     }
-    function saveAttendance() {
-        // Implement save functionality
-        alert('Attendance saved successfully');
-        document.getElementById('addAttendanceModal').querySelector('.btn-close').click();
-        refreshTable();
+
+    async function saveAttendance() {
+        const form = document.getElementById('addAttendanceForm');
+        const params = new FormData(form);
+        if (!params.get('student')) { alert('Student is required'); return; }
+        CRUD.showLoading('tableContainer');
+        try {
+            const res = await CRUD.post('api/attendance.php?action=mark', params);
+            if (res.success) {
+                const modalEl = document.getElementById('addAttendanceModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.hide();
+                refreshTable();
+            } else {
+                alert('Save failed: ' + (res.message || res.error || 'Unknown'));
+            }
+        } catch (e) { alert('Save request failed: ' + e.message); }
+        finally { CRUD.hideLoading(); }
     }
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {

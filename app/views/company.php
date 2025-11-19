@@ -13,6 +13,8 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $total = count($company);
 $totalPages = 1;
+// pick first company record for editing
+$company_record = !empty($company) ? $company[0] : null;
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
@@ -47,9 +49,10 @@ $totalPages = 1;
             <div class="modal-header"><h5 class="modal-title">Edit Company</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
             <div class="modal-body">
                 <form id="editCompanyForm">
-                    <div class="mb-3"><label class="form-label">Company Name</label><input class="form-control" name="name" required></div>
-                    <div class="mb-3"><label class="form-label">Address</label><textarea class="form-control" name="address" rows="3"></textarea></div>
-                    <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Phone</label><input class="form-control" name="phone"></div><div class="col-md-6 mb-3"><label class="form-label">Email</label><input type="email" class="form-control" name="email"></div></div>
+                    <input type="hidden" name="id" id="companyId" value="<?= $company_record['id'] ?? '' ?>">
+                    <div class="mb-3"><label class="form-label">Company Name</label><input class="form-control" name="name" value="<?= htmlspecialchars($company_record['name'] ?? '') ?>" required></div>
+                    <div class="mb-3"><label class="form-label">Address</label><textarea class="form-control" name="address" rows="3"><?= htmlspecialchars($company_record['address'] ?? '') ?></textarea></div>
+                    <div class="row"><div class="col-md-6 mb-3"><label class="form-label">Phone</label><input class="form-control" name="phone" value="<?= htmlspecialchars($company_record['phone'] ?? '') ?>"></div><div class="col-md-6 mb-3"><label class="form-label">Email</label><input type="email" class="form-control" name="email" value="<?= htmlspecialchars($company_record['email'] ?? '') ?>"></div></div>
                 </form>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" onclick="saveCompany()">Save</button></div>
@@ -58,6 +61,6 @@ $totalPages = 1;
 </div>
 <?php include __DIR__ . '/partials/footer.php'; ?>
 <script>
-    function saveCompany(){ alert('Company saved'); document.getElementById('editCompanyModal').querySelector('.btn-close')?.click(); }
+    async function saveCompany(){ const form=document.getElementById('editCompanyForm'); const params=new FormData(form); CRUD.showLoading(); try{ const res=await CRUD.post('api/company.php?action=save', params); if(res.success){ location.reload(); } else { alert('Save failed: '+(res.message||res.error||'Unknown')); } }catch(e){ alert('Request failed: '+e.message); } finally{ CRUD.hideLoading(); } }
     document.addEventListener('DOMContentLoaded', ()=>document.querySelector('.dashboard-container').classList.add('show'));
 </script>

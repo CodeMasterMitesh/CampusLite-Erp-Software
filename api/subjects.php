@@ -1,5 +1,5 @@
 <?php
-header('Content-Type: application/json');
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/../app/controllers/SubjectController.php';
 
 $action = $_REQUEST['action'] ?? ($_SERVER['REQUEST_METHOD']==='GET' ? 'list' : 'create');
@@ -7,29 +7,37 @@ try {
     switch ($action) {
         case 'list':
             $rows = SubjectController::getAll();
-            echo json_encode(['success'=>true,'data'=>$rows]);
+            send_json(true, null, $rows);
             break;
         case 'get':
             $id = intval($_GET['id'] ?? 0);
-            // SubjectController doesn't have get() — use getAll filter locally
             $rows = SubjectController::getAll();
             $found = null;
             foreach ($rows as $r) if ($r['id']===$id) $found=$r;
-            echo json_encode(['success'=>true,'data'=>$found]);
+            if ($found) send_json(true, null, $found); else send_json(false, 'Subject not found');
             break;
         case 'create':
             $ok = SubjectController::create($_POST['title'] ?? '', $_POST['description'] ?? '');
-            echo json_encode(['success'=>(bool)$ok]);
+            if ($ok) send_json(true, 'Subject created'); else send_json(false, 'Failed to create subject');
+            break;
+        case 'update':
+            $id = intval($_POST['id'] ?? 0);
+            $title = $_POST['title'] ?? '';
+            $description = $_POST['description'] ?? '';
+            require_once __DIR__ . '/../config/db.php';
+            $stmt = mysqli_prepare($conn, "UPDATE subjects SET title = ?, description = ? WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, 'ssi', $title, $description, $id);
+            $ok = mysqli_stmt_execute($stmt);
+            if ($ok) send_json(true, 'Subject updated'); else send_json(false, 'Failed to update subject');
             break;
         case 'delete':
             $id = intval($_POST['id'] ?? 0);
-            // fallback: direct delete
             require_once __DIR__ . '/../config/db.php';
             $res = mysqli_query($conn, "DELETE FROM subjects WHERE id = $id");
-            echo json_encode(['success'=>(bool)$res]);
+            if ($res) send_json(true, 'Subject deleted'); else send_json(false, 'Failed to delete subject');
             break;
         default:
-            echo json_encode(['success'=>false,'message'=>'Unknown action']);
+            send_json(false, 'Unknown action');
     }
-} catch(Exception $e){ echo json_encode(['success'=>false,'error'=>$e->getMessage()]); }
+} catch(Exception $e){ send_json(false, 'Server error', null, ['exception' => $e->getMessage()]); }
 

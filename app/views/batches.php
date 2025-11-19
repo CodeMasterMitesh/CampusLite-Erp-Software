@@ -13,6 +13,13 @@ $search = $_GET['search'] ?? '';
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $totalBatches = count($batches);
 $totalPages = 1;
+// load branches and courses
+$branchFile = __DIR__ . '/../controllers/BranchController.php';
+$branches = [];
+if (file_exists($branchFile)) { require_once $branchFile; if (class_exists('BranchController') && method_exists('BranchController','getAll')) $branches = BranchController::getAll(); }
+$courseFile = __DIR__ . '/../controllers/CourseController.php';
+$courses = [];
+if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('CourseController') && method_exists('CourseController','getAll')) $courses = CourseController::getAll(); }
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
@@ -157,13 +164,19 @@ $totalPages = 1;
             </div>
             <div class="modal-body">
                 <form id="addBatchForm">
+                    <input type="hidden" name="id" id="batchId" value="">
                     <div class="mb-3">
                         <label class="form-label">Batch Name</label>
                         <input type="text" class="form-control" name="name" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Course</label>
-                        <input type="text" class="form-control" name="course" required>
+                        <select class="form-control" name="course_id" id="batchCourse" required>
+                            <option value="0">-- Select Course --</option>
+                            <?php foreach ($courses as $c): ?>
+                                <option value="<?= intval($c['id']) ?>"><?= htmlspecialchars($c['title'] ?? $c['name'] ?? 'Course') ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Start Date</label>
@@ -259,31 +272,10 @@ $totalPages = 1;
         if (overlay) overlay.remove();
     }
     // Batch management functions
-    function editBatch(id) {
-        alert(`Edit batch with ID: ${id}`);
-        // Implement edit functionality
-    }
-    function viewBatch(id) {
-        alert(`View batch with ID: ${id}`);
-        // Implement view functionality
-    }
-    function deleteBatch(id) {
-        if (confirm('Are you sure you want to delete this batch?')) {
-            showLoading();
-            // Implement delete functionality
-            setTimeout(() => {
-                alert(`Batch ${id} deleted successfully`);
-                hideLoading();
-                refreshTable();
-            }, 1500);
-        }
-    }
-    function saveBatch() {
-        // Implement save functionality
-        alert('Batch saved successfully');
-        document.getElementById('addBatchModal').querySelector('.btn-close').click();
-        refreshTable();
-    }
+    async function editBatch(id){ CRUD.showLoading('tableContainer'); try{ const res=await CRUD.get(`api/batches.php?action=get&id=${encodeURIComponent(id)}`); if(res.success&&res.data){ const b=res.data; document.getElementById('batchId').value=b.id||''; document.querySelector('#addBatchForm [name="name"]').value=b.title||b.name||''; document.querySelector('#addBatchForm [name="start_date"]').value=b.start_date||''; document.querySelector('#addBatchForm [name="end_date"]').value=b.end_date||''; document.getElementById('batchCourse').value=b.course_id||0; const modalEl=document.getElementById('addBatchModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show(); } else alert('Batch not found'); }catch(e){ alert('Failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+    async function viewBatch(id){ await editBatch(id); const form=document.getElementById('addBatchForm'); Array.from(form.elements).forEach(el=>el.disabled=true); const saveBtn=document.querySelector('#addBatchModal .btn-primary'); if(saveBtn) saveBtn.style.display='none'; document.querySelector('#addBatchModal .modal-title').innerText='View Batch'; }
+    async function deleteBatch(id){ if(!confirm('Delete batch '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res=await CRUD.post('api/batches.php?action=delete', p); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+    async function saveBatch(){ const form=document.getElementById('addBatchForm'); const params=new FormData(form); if(!params.get('name')){ alert('Name required'); return;} CRUD.showLoading('tableContainer'); try{ const res=await CRUD.post('api/batches.php?action=create', params); if(res.success){ const modalEl=document.getElementById('addBatchModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'f') {

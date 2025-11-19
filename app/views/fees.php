@@ -92,12 +92,14 @@ $totalPages = 1;
         <div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">Record Fee</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
             <div class="modal-body">
-                <form id="addFeeForm">
-                    <div class="mb-3"><label class="form-label">Student</label><input class="form-control" name="student" required></div>
-                    <div class="mb-3"><label class="form-label">Course</label><input class="form-control" name="course" required></div>
-                    <div class="mb-3"><label class="form-label">Amount</label><input type="number" class="form-control" name="amount" required></div>
-                    <div class="mb-3"><label class="form-label">Date</label><input type="date" class="form-control" name="date" required></div>
-                </form>
+                        <form id="addFeeForm">
+                            <input type="hidden" name="id" id="feeId" value="">
+                            <input type="hidden" name="branch_id" id="feeBranchId" value="0">
+                            <div class="mb-3"><label class="form-label">Student</label><input class="form-control" name="student" required></div>
+                            <div class="mb-3"><label class="form-label">Course</label><input class="form-control" name="course" required></div>
+                            <div class="mb-3"><label class="form-label">Amount</label><input type="number" class="form-control" name="amount" required></div>
+                            <div class="mb-3"><label class="form-label">Date</label><input type="date" class="form-control" name="date" required></div>
+                        </form>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" onclick="saveFee()">Save Fee</button></div>
         </div>
@@ -110,6 +112,28 @@ $totalPages = 1;
     document.addEventListener('DOMContentLoaded', ()=>document.querySelector('.dashboard-container').classList.add('show'));
     function exportToExcel(){ showLoading(); setTimeout(()=>{ window.location.href='?page=fees&export=excel'; hideLoading(); },800);} function printTable(){ const table=document.getElementById('fees-table').cloneNode(true); const w=window.open('','_blank'); w.document.write(`<html><head><title>Fees</title></head><body><h2>Fees</h2>${table.outerHTML}</body></html>`); w.document.close(); w.print(); }
     function refreshTable(){ showLoading(); setTimeout(()=>location.reload(),600);} function showLoading(){ const c=document.getElementById('tableContainer'); const o=document.createElement('div'); o.className='loading-overlay'; o.innerHTML='<div class="spinner-border text-primary spinner" role="status"><span class="visually-hidden">Loading...</span></div>'; c.style.position='relative'; c.appendChild(o);} function hideLoading(){ const o=document.querySelector('.loading-overlay'); if(o) o.remove(); }
-    function viewFee(id){ alert('View fee '+id);} function deleteFee(id){ if(confirm('Delete fee '+id+'?')){ showLoading(); setTimeout(()=>{ alert('Deleted'); hideLoading(); refreshTable(); },900);} }
-    function saveFee(){ alert('Saved'); document.getElementById('addFeeModal').querySelector('.btn-close')?.click(); refreshTable(); }
+    async function viewFee(id){
+        CRUD.showLoading('tableContainer');
+        try{
+            const res = await CRUD.get(`api/fees.php?action=get&id=${encodeURIComponent(id)}`);
+            if(res.success && res.data){
+                const f = res.data;
+                document.getElementById('feeId').value = f.id || '';
+                document.querySelector('#addFeeForm [name="student"]').value = f.student || '';
+                document.querySelector('#addFeeForm [name="course"]').value = f.course || '';
+                document.querySelector('#addFeeForm [name="amount"]').value = f.amount || '';
+                document.querySelector('#addFeeForm [name="date"]').value = f.payment_date || f.date || '';
+                document.getElementById('feeBranchId').value = f.branch_id ?? 0;
+                // open modal in view mode
+                const modalEl = document.getElementById('addFeeModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else alert('Record not found');
+        }catch(e){ alert('Failed to load: '+e.message); }
+        finally{ CRUD.hideLoading(); }
+    }
+
+    async function deleteFee(id){ if(!confirm('Delete fee '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const params=new URLSearchParams(); params.append('id', id); const res=await CRUD.post('api/fees.php?action=delete', params); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+
+    async function saveFee(){ const form=document.getElementById('addFeeForm'); const params=new FormData(form); if(!params.get('student')){ alert('Student required'); return;} CRUD.showLoading('tableContainer'); try{ const res = await CRUD.post('api/fees.php?action=pay', params); if(res.success){ const modalEl=document.getElementById('addFeeModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }
 </script>

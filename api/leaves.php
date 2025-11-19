@@ -26,5 +26,18 @@ if ($action === 'decide' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(['success' => $success]);
     exit;
 }
+if ($action === 'get') {
+    $id = intval($_GET['id'] ?? 0);
+    $result = mysqli_query($conn, "SELECT * FROM leaves WHERE id = $id LIMIT 1");
+    $row = mysqli_fetch_assoc($result);
+    echo json_encode(['success' => (bool)$row, 'data' => $row]);
+    exit;
+}
+if ($action === 'delete' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = intval($_POST['id'] ?? 0);
+    $res = mysqli_query($conn, "DELETE FROM leaves WHERE id = $id");
+    echo json_encode(['success' => (bool)$res]);
+    exit;
+}
 echo json_encode(['success' => false, 'message' => 'Invalid action']);
 ?>
