@@ -12,7 +12,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="index.php?page=dashboard">
-            <img src="../../../public/assets/images/CampusLite_Erp_1.png" alt="Logo" width="50" height="50" class="me-2">
+            <img src="../../../public/assets/images/CampusLite_Erp_1.png" alt="Logo" width="70" height="70" class="me-2">
             CampusLite ERP
         </a>
 
@@ -21,7 +21,7 @@
         </button>
 
         <div class="collapse navbar-collapse" id="mainNavbar">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 <li class="nav-item"><a class="nav-link active" href="index.php?page=dashboard"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a></li>
                 <!-- <li class="nav-item"><a class="nav-link" href="index.php?page=branches"><i class="fas fa-code-branch me-1"></i> Branches</a></li> -->
                 <!-- <li class="nav-item"><a class="nav-link" href="index.php?page=users"><i class="fas fa-users me-1"></i> Users</a></li> -->

@@ -57,7 +57,7 @@
 
  .navbar-brand {
      font-weight: 700;
-     font-size: 10px;
+     font-size: 20px;
      letter-spacing: -0.5px;
      transition: transform 0.3s ease;
  }
@@ -68,7 +68,7 @@
 
  .navbar-brand img {
      transition: transform 0.3s ease;
-     border-radius: 8px;
+     border-radius: 50%;
  }
 
  .navbar-brand:hover img {
@@ -479,7 +479,7 @@
      background:white;
      color: black;
      border: 1px solid #dee2e6;
-     padding: 5px;
+    padding: 6px 8px;
      font-weight: 600;
      position: sticky;
      top: 0;
@@ -490,15 +490,21 @@
  }
 
  .data-table tbody tr:hover {
-     background-color: rgba(13, 110, 253, 0.05);
-     transform: scale(1.01);
+     background-color: rgba(13, 110, 253, 0.04);
  }
 
  .data-table tbody td {
-     padding: 1rem 0.75rem;
-     border-bottom: 1px solid #dee2e6;
+     padding: 6px 8px; /* compact cells */
+     border-bottom: 1px solid #e9ecef;
      vertical-align: middle;
+     font-size: 0.95rem;
  }
+
+/* make header a bit more elevated and compact */
+.data-table thead th {
+    background: linear-gradient(180deg, #ffffff, #f8f9fb);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02) inset;
+}
 
  /* Status Badges */
  .status-badge {

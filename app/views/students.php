@@ -20,6 +20,11 @@ if (file_exists($branchFile)) {
     require_once $branchFile;
     if (class_exists('BranchController') && method_exists('BranchController','getAll')) $branches = BranchController::getAll();
 }
+// build branch id -> name map
+$branchMap = [];
+foreach ($branches as $b) {
+    $branchMap[$b['id']] = $b['name'];
+}
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
@@ -31,30 +36,30 @@ if (file_exists($branchFile)) {
                 <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-user-graduate"></i> Students</li>
             </ol>
         </nav>
-        <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addStudentModal">
-            <i class="fas fa-plus"></i> Add New Student
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <div class="action-buttons d-none d-md-flex">
+                <button class="btn btn-success btn-action" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </button>
+                <button class="btn btn-secondary btn-action" onclick="printTable()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button class="btn btn-info btn-action" onclick="refreshTable()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                <i class="fas fa-plus"></i> Add New Student
+            </button>
+        </div>
     </div>
     <!-- Table Container -->
     <div class="advanced-table-container">
         <!-- Table Controls -->
         <div class="table-controls">
             <div class="table-header">
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search students..." value="<?= htmlspecialchars($search) ?>">
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success btn-action" onclick="exportToExcel()">
-                        <i class="fas fa-file-excel"></i> Export Excel
-                    </button>
-                    <button class="btn btn-secondary btn-action" onclick="printTable()">
-                        <i class="fas fa-print"></i> Print
-                    </button>
-                    <button class="btn btn-info btn-action" onclick="refreshTable()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
+                <!-- Column-wise search only: removed global search input -->
+                <!-- action buttons moved to breadcrumb area for better alignment -->
             </div>
         </div>
         <!-- Table -->
@@ -91,16 +96,26 @@ if (file_exists($branchFile)) {
                                 <td><?= htmlspecialchars($student['id'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($student['name'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($student['email'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($student['phone'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($student['branch'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($student['mobile'] ?? $student['phone'] ?? '') ?></td>
                                 <td>
-                                    <?php if (isset($student['status'])): ?>
-                                        <span class="status-badge <?= $student['status'] === 'active' ? 'status-active' : 'status-inactive' ?>">
-                                            <?= ucfirst($student['status']) ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="status-badge status-inactive">N/A</span>
-                                    <?php endif; ?>
+                                    <?php
+                                        $bid = $student['branch_id'] ?? $student['branch'] ?? null;
+                                        $branchName = '';
+                                        if ($bid && isset($branchMap[$bid])) $branchName = $branchMap[$bid];
+                                        elseif ($student['branch'] ?? false) $branchName = $student['branch'];
+                                    ?>
+                                    <?= htmlspecialchars($branchName) ?>
+                                </td>
+                                <td>
+                                    <?php
+                                        $st = $student['status'] ?? null;
+                                        $statusLabel = 'N/A';
+                                        $isActive = false;
+                                        if ($st === 'active' || $st === '1' || $st === 1) { $statusLabel = 'Active'; $isActive = true; }
+                                        elseif ($st === 'inactive' || $st === '0' || $st === 0) { $statusLabel = 'Inactive'; $isActive = false; }
+                                        elseif (is_string($st) && $st !== '') { $statusLabel = ucfirst($st); }
+                                    ?>
+                                    <span class="status-badge <?= $isActive ? 'status-active' : 'status-inactive' ?>"><?= htmlspecialchars($statusLabel) ?></span>
                                 </td>
                                 <td>
                                     <div class="table-actions">
@@ -198,17 +213,76 @@ if (file_exists($branchFile)) {
 <?php include __DIR__ . '/partials/footer.php'; ?>
 <script>
     // Client-side search functionality with debounce
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const searchValue = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#students-table tbody tr');
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(searchValue) ? '' : 'none';
-            });
-        }, 200);
+    // let searchTimeout;
+    // document.getElementById('searchInput').addEventListener('input', function(e) {
+    //     clearTimeout(searchTimeout);
+    //     searchTimeout = setTimeout(() => {
+    //         const searchValue = e.target.value.toLowerCase();
+    //         const rows = document.querySelectorAll('#students-table tbody tr');
+    //         rows.forEach(row => {
+    //             const text = row.innerText.toLowerCase();
+    //             row.style.display = text.includes(searchValue) ? '' : 'none';
+    //         });
+    //     }, 200);
+    // });
+    // Initialize DataTables with per-column search, pagination and sorting
+    document.addEventListener('DOMContentLoaded', function() {
+        // no global search input — focusing should go to the first column filter
+
+        // Prevent table-row hover effects from shifting layout
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #students-table tbody tr { transition: none !important; }
+            #students-table tbody tr:hover { transform: none !important; box-shadow: none !important; margin: 0 !important; }
+            #students-table thead tr.filters input { width: 100%; }
+        `;
+        document.head.appendChild(style);
+
+        // add a second header row for column filters
+        const table = $('#students-table');
+        const thead = table.find('thead');
+        const filterRow = $('<tr>').addClass('filters');
+        thead.find('tr').first().children().each(function() {
+            const th = $('<th>');
+            const idx = $(this).index();
+            if ($(this).text().trim() === 'Actions') {
+                th.html('');
+            } else {
+                th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
+            }
+            filterRow.append(th);
+        });
+        thead.append(filterRow);
+
+        // Use DataTables Buttons extension (colVis) for column visibility control
+        // remove the built-in global filter 'f' from dom to avoid DataTables adding a global search input (type="search")
+        const dataTable = table.DataTable({
+            dom: 'B<"clear">lrtip', // 'B' enables Buttons UI; no 'f' (filter)
+            buttons: [
+                {
+                    extend: 'colvis',
+                    columns: ':not(:last-child)',
+                    text: 'Columns'
+                }
+            ],
+            orderCellsTop: true,
+            fixedHeader: true,
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            responsive: true,
+            columnDefs: [
+                { orderable: false, targets: -1 }
+            ]
+        });
+
+        // Apply the search: delegate events from the filter row inputs
+        $('#students-table thead').on('keyup change', 'tr.filters input', function() {
+            const idx = $(this).closest('th').index();
+            const val = $(this).val();
+            if (dataTable.column(idx).search() !== val) {
+                dataTable.column(idx).search(val).draw();
+            }
+        });
     });
     // Smooth fade-in effect for page content
     document.addEventListener('DOMContentLoaded', function() {
@@ -368,7 +442,18 @@ if (file_exists($branchFile)) {
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'f') {
             e.preventDefault();
-            document.getElementById('searchInput').focus();
+            // focus first column filter input (the filter row is added dynamically)
+            let input = document.querySelector('#students-table thead tr.filters input');
+            if (input) {
+                input.focus();
+                input.select && input.select();
+            } else {
+                // try again shortly if inputs not yet present
+                setTimeout(() => {
+                    const delayed = document.querySelector('#students-table thead tr.filters input');
+                    if (delayed) { delayed.focus(); delayed.select && delayed.select(); }
+                }, 200);
+            }
         }
         if (e.ctrlKey && e.key === 'n') {
             e.preventDefault();
