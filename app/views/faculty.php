@@ -21,6 +21,11 @@ if (file_exists($branchFile)) {
     require_once $branchFile;
     if (class_exists('BranchController') && method_exists('BranchController','getAll')) $branches = BranchController::getAll();
 }
+// build branch id => name map for display
+$branchMap = [];
+foreach ($branches as $b) {
+    $branchMap[intval($b['id'])] = $b['name'];
+}
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
@@ -36,7 +41,7 @@ if (file_exists($branchFile)) {
             <button class="btn btn-danger btn-action" id="delete-selected-faculty" style="display:none; margin-right:0.5rem;">
                 <i class="fas fa-trash"></i> Delete Selected
             </button>
-            <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addFacultyModal">
+            <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addFacultyModal" onclick="prepareAddFaculty()">
                 <i class="fas fa-plus"></i> Add New Faculty
             </button>
         </div>
@@ -76,13 +81,13 @@ if (file_exists($branchFile)) {
                     <?php else: ?>
                         <?php foreach ($faculty as $f): ?>
                             <tr>
-                                <td class="text-center"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($f['id'] ?? '') ?>"></td>
-                                <td><?= htmlspecialchars($f['id'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($f['name'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($f['email'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($f['phone'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($f['branch'] ?? '') ?></td>
-                                <td>
+                                <td class="text-center" data-label="Select"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($f['id'] ?? '') ?>"></td>
+                                <td data-label="ID"><?= htmlspecialchars($f['id'] ?? '') ?></td>
+                                <td data-label="Name"><?= htmlspecialchars($f['name'] ?? '') ?></td>
+                                <td data-label="Email"><?= htmlspecialchars($f['email'] ?? '') ?></td>
+                                <td data-label="Phone"><?= htmlspecialchars($f['mobile'] ?? ($f['phone'] ?? '')) ?></td>
+                                <td data-label="Branch"><?= htmlspecialchars($branchMap[intval($f['branch_id'] ?? 0)] ?? ($f['branch'] ?? '')) ?></td>
+                                <td data-label="Status">
                                     <?php if (isset($f['status'])): ?>
                                         <span class="status-badge <?= $f['status'] === 'active' ? 'status-active' : 'status-inactive' ?>">
                                             <?= ucfirst($f['status']) ?>
@@ -91,7 +96,7 @@ if (file_exists($branchFile)) {
                                         <span class="status-badge status-inactive">N/A</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="table-actions">
                                         <button class="btn btn-sm btn-outline-primary btn-table" onclick="editFaculty(<?= $f['id'] ?? 0 ?>)" title="Edit">
                                             <i class="fas fa-edit"></i>
@@ -148,7 +153,7 @@ if (file_exists($branchFile)) {
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add New Faculty</h5>
+                <h5 class="modal-title" id="facultyModalTitle">Add New Faculty</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -164,7 +169,7 @@ if (file_exists($branchFile)) {
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Phone</label>
-                        <input type="tel" class="form-control" name="phone" required>
+                        <input type="tel" class="form-control" name="mobile" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Password</label>
@@ -184,7 +189,7 @@ if (file_exists($branchFile)) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveFaculty()">Save Faculty</button>
+                <button type="button" id="saveFacultyBtn" class="btn btn-primary" onclick="saveFaculty()">Save Faculty</button>
             </div>
         </div>
     </div>
@@ -273,7 +278,46 @@ if (file_exists($branchFile)) {
         if (overlay) overlay.remove();
     }
     // Faculty management functions
-    async function editFaculty(id){ CRUD.showLoading('tableContainer'); try{ const res = await CRUD.get(`api/faculty.php?action=get&id=${encodeURIComponent(id)}`); if(res.success && res.data){ const f = res.data; document.getElementById('facultyId').value = f.id||''; document.querySelector('#addFacultyForm [name="name"]').value = f.name||''; document.querySelector('#addFacultyForm [name="email"]').value = f.email||''; document.querySelector('#addFacultyForm [name="phone"]').value = f.mobile||f.phone||''; document.getElementById('facultyBranch').value = f.branch_id||0; const modalEl = document.getElementById('addFacultyModal'); const modal = bootstrap.Modal.getOrCreateInstance(modalEl); modal.show(); } else alert('Faculty not found'); }catch(e){ alert('Failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+    
+    function prepareAddFaculty() {
+        // Clear form for adding new faculty
+        try {
+            const form = document.getElementById('addFacultyForm');
+            form.reset();
+            const idEl = document.getElementById('facultyId');
+            if (idEl) idEl.value = '';
+            const title = document.getElementById('facultyModalTitle');
+            if (title) title.innerText = 'Add New Faculty';
+            const saveBtn = document.getElementById('saveFacultyBtn');
+            if (saveBtn) saveBtn.innerText = 'Save Faculty';
+        } catch (e) { /* ignore */ }
+    }
+
+    async function editFaculty(id){
+        CRUD.showLoading('tableContainer');
+        try {
+            const res = await CRUD.get(`api/faculty.php?action=get&id=${encodeURIComponent(id)}`);
+            if (res.success && res.data) {
+                const f = res.data;
+                document.getElementById('facultyId').value = f.id || '';
+                document.querySelector('#addFacultyForm [name="name"]').value = f.name || '';
+                document.querySelector('#addFacultyForm [name="email"]').value = f.email || '';
+                document.querySelector('#addFacultyForm [name="mobile"]').value = f.mobile || f.phone || '';
+                document.getElementById('facultyBranch').value = f.branch_id || 0;
+                // set modal to edit mode
+                const title = document.getElementById('facultyModalTitle');
+                if (title) title.innerText = 'Edit Faculty';
+                const saveBtn = document.getElementById('saveFacultyBtn');
+                if (saveBtn) saveBtn.innerText = 'Update Faculty';
+                const modalEl = document.getElementById('addFacultyModal');
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            } else {
+                alert('Faculty not found');
+            }
+        } catch (e) { alert('Failed: ' + e.message); }
+        finally { CRUD.hideLoading(); }
+    }
     async function viewFaculty(id){ await editFaculty(id); const form=document.getElementById('addFacultyForm'); Array.from(form.elements).forEach(el=>el.disabled=true); const saveBtn=document.querySelector('#addFacultyModal .btn-primary'); if(saveBtn) saveBtn.style.display='none'; document.querySelector('#addFacultyModal .modal-title').innerText='View Faculty'; }
     async function deleteFaculty(id){ if(!confirm('Delete faculty '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res = await CRUD.post('api/faculty.php?action=delete', p); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
     async function saveFaculty(){ const form=document.getElementById('addFacultyForm'); const params=new FormData(form); if(!params.get('name')){ alert('Name required'); return;} CRUD.showLoading('tableContainer'); try{ const id=params.get('id'); const action = id ? 'update' : 'create'; const res = await CRUD.post('api/faculty.php?action='+action, params); if(res.success){ const modalEl=document.getElementById('addFacultyModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }

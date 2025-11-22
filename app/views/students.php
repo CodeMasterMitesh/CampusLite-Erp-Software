@@ -84,12 +84,12 @@ foreach ($branches as $b) {
                     <?php else: ?>
                         <?php foreach ($students as $student): ?>
                             <tr>
-                                <td class="text-center"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($student['id'] ?? '') ?>"></td>
-                                <td><?= htmlspecialchars($student['id'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($student['name'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($student['email'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($student['mobile'] ?? $student['phone'] ?? '') ?></td>
-                                <td>
+                                <td class="text-center" data-label="Select"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($student['id'] ?? '') ?>"></td>
+                                <td data-label="ID"><?= htmlspecialchars($student['id'] ?? '') ?></td>
+                                <td data-label="Name"><?= htmlspecialchars($student['name'] ?? '') ?></td>
+                                <td data-label="Email"><?= htmlspecialchars($student['email'] ?? '') ?></td>
+                                <td data-label="Phone"><?= htmlspecialchars($student['mobile'] ?? $student['phone'] ?? '') ?></td>
+                                <td data-label="Branch">
                                     <?php
                                         $bid = $student['branch_id'] ?? $student['branch'] ?? null;
                                         $branchName = '';
