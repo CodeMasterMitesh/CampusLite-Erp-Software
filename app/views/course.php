@@ -26,20 +26,8 @@ $totalPages = 1;
         <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addCourseModal"><i class="fas fa-plus"></i> Add Course</button>
     </div>
     <div class="advanced-table-container">
-        <div class="table-controls">
-            <div class="table-header">
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search courses..." value="<?= htmlspecialchars($search) ?>">
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success btn-action" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
-                    <button class="btn btn-secondary btn-action" onclick="printTable()"><i class="fas fa-print"></i> Print</button>
-                    <button class="btn btn-info btn-action" onclick="refreshTable()"><i class="fas fa-sync-alt"></i> Refresh</button>
-                </div>
-            </div>
-        </div>
-        <div class="table-responsive position-relative" id="tableContainer">
+        <!-- table-controls removed (search/actions removed) -->
+        <div class="table-responsive" id="tableContainer">
             <table class="table data-table" id="courses-table">
                 <thead>
                     <tr>
@@ -98,7 +86,7 @@ $totalPages = 1;
 <?php include __DIR__ . '/partials/footer.php'; ?>
 <script>
     let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function(e){ clearTimeout(searchTimeout); searchTimeout=setTimeout(()=>{ const v=e.target.value.toLowerCase(); document.querySelectorAll('#courses-table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(v)?'':'none'); },200);} );
+    (function(){ const si = document.getElementById('searchInput'); if(!si) return; si.addEventListener('input', function(e){ clearTimeout(searchTimeout); searchTimeout=setTimeout(()=>{ const v=e.target.value.toLowerCase(); document.querySelectorAll('#courses-table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(v)?'':'none'); },200);} ); })();
     document.addEventListener('DOMContentLoaded', ()=>document.querySelector('.dashboard-container').classList.add('show'));
     function exportToExcel(){ showLoading(); setTimeout(()=>{ window.location.href='?page=courses&export=excel'; hideLoading(); },800);} function printTable(){ const table=document.getElementById('courses-table').cloneNode(true); const w=window.open('','_blank'); w.document.write(`<html><head><title>Courses</title></head><body><h2>Courses</h2>${table.outerHTML}</body></html>`); w.document.close(); w.print(); }
     function refreshTable(){ showLoading(); setTimeout(()=>location.reload(),600);} function showLoading(){ const c=document.getElementById('tableContainer'); const o=document.createElement('div'); o.className='loading-overlay'; o.innerHTML='<div class="spinner-border text-primary spinner" role="status"><span class="visually-hidden">Loading...</span></div>'; c.style.position='relative'; c.appendChild(o);} function hideLoading(){ const o=document.querySelector('.loading-overlay'); if(o) o.remove(); }

@@ -41,11 +41,8 @@ foreach ($branches as $b) {
                 <button class="btn btn-success btn-action" onclick="exportToExcel()">
                     <i class="fas fa-file-excel"></i> Export Excel
                 </button>
-                <button class="btn btn-secondary btn-action" onclick="printTable()">
-                    <i class="fas fa-print"></i> Print
-                </button>
-                <button class="btn btn-info btn-action" onclick="refreshTable()">
-                    <i class="fas fa-sync-alt"></i> Refresh
+                <button class="btn btn-danger btn-action" id="delete-selected-students" style="display:none; margin-left:0.5rem;">
+                    <i class="fas fa-trash"></i> Delete Selected
                 </button>
             </div>
             <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addStudentModal">
@@ -56,10 +53,11 @@ foreach ($branches as $b) {
     <!-- Table Container -->
     <div class="advanced-table-container">
         <!-- Table -->
-        <div class="table-responsive position-relative" id="tableContainer">
+        <div class="table-responsive table-compact" id="tableContainer">
             <table class="table data-table" id="students-table">
                 <thead>
                     <tr>
+                        <th width="40" class="text-center"><input type="checkbox" id="select-all-students"></th>
                         <th width="80">ID</th>
                         <th>Name</th>
                         <th>Email</th>
@@ -72,7 +70,7 @@ foreach ($branches as $b) {
                 <tbody id="tableBody">
                     <?php if (empty($students)): ?>
                         <tr>
-                            <td colspan="7">
+                            <td colspan="8">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No students found</h4>
@@ -86,6 +84,7 @@ foreach ($branches as $b) {
                     <?php else: ?>
                         <?php foreach ($students as $student): ?>
                             <tr>
+                                <td class="text-center"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($student['id'] ?? '') ?>"></td>
                                 <td><?= htmlspecialchars($student['id'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($student['name'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($student['email'] ?? '') ?></td>
@@ -237,8 +236,10 @@ foreach ($branches as $b) {
         const filterRow = $('<tr>').addClass('filters');
         thead.find('tr').first().children().each(function() {
             const th = $('<th>');
-            const idx = $(this).index();
-            if ($(this).text().trim() === 'Actions') {
+            // Skip adding a filter for checkbox columns
+            if ($(this).find('input[type="checkbox"]').length) {
+                th.html('');
+            } else if ($(this).text().trim() === 'Actions') {
                 th.html('');
             } else {
                 th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
@@ -250,21 +251,14 @@ foreach ($branches as $b) {
         // Use DataTables Buttons extension (colVis) for column visibility control
         // remove the built-in global filter 'f' from dom to avoid DataTables adding a global search input (type="search")
         const dataTable = table.DataTable({
-            dom: 'B<"clear">lrtip', // 'B' enables Buttons UI; no 'f' (filter)
-            buttons: [
-                {
-                    extend: 'colvis',
-                    columns: ':not(:last-child)',
-                    text: 'Columns'
-                }
-            ],
+            dom: 'lrtip',
             orderCellsTop: true,
             fixedHeader: true,
             pageLength: 10,
             lengthMenu: [10, 25, 50, 100],
             responsive: true,
             columnDefs: [
-                { orderable: false, targets: -1 }
+                { orderable: false, targets: [0, -1] }
             ]
         });
 

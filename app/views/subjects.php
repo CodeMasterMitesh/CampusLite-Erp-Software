@@ -23,28 +23,22 @@ $totalPages = 1;
                 <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-book"></i> Subjects</li>
             </ol>
         </nav>
-        <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
-            <i class="fas fa-plus"></i> Add New Subject
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-danger btn-action" id="delete-selected-subjects" style="display:none; margin-right:0.5rem;">
+                <i class="fas fa-trash"></i> Delete Selected
+            </button>
+            <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
+                <i class="fas fa-plus"></i> Add New Subject
+            </button>
+        </div>
     </div>
     <div class="advanced-table-container">
-        <div class="table-controls">
-            <div class="table-header">
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search subjects..." value="<?= htmlspecialchars($search) ?>">
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success btn-action" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
-                    <button class="btn btn-secondary btn-action" onclick="printTable()"><i class="fas fa-print"></i> Print</button>
-                    <button class="btn btn-info btn-action" onclick="refreshTable()"><i class="fas fa-sync-alt"></i> Refresh</button>
-                </div>
-            </div>
-        </div>
-        <div class="table-responsive position-relative" id="tableContainer">
+        <!-- table-controls removed (search/actions moved or not needed) -->
+        <div class="table-responsive table-compact" id="tableContainer">
             <table class="table data-table" id="subjects-table">
                 <thead>
                     <tr>
+                        <th width="40" class="text-center"><input type="checkbox" id="select-all-subjects"></th>
                         <th width="80">ID</th>
                         <th>Title</th>
                         <th>Description</th>
@@ -54,7 +48,7 @@ $totalPages = 1;
                 <tbody id="tableBody">
                     <?php if (empty($subjects)): ?>
                         <tr>
-                            <td colspan="4">
+                            <td colspan="5">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No subjects found</h4>
@@ -66,6 +60,7 @@ $totalPages = 1;
                     <?php else: ?>
                         <?php foreach ($subjects as $s): ?>
                             <tr>
+                                <td class="text-center"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($s['id'] ?? '') ?>"></td>
                                 <td><?= htmlspecialchars($s['id'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($s['title'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($s['description'] ?? '') ?></td>
@@ -111,14 +106,35 @@ $totalPages = 1;
 <?php include __DIR__ . '/partials/footer.php'; ?>
 <script>
     let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const v = e.target.value.toLowerCase();
-            document.querySelectorAll('#subjects-table tbody tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(v) ? '' : 'none');
-        }, 200);
+    (function(){
+        const si = document.getElementById('searchInput');
+        if (!si) return;
+        si.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const v = e.target.value.toLowerCase();
+                document.querySelectorAll('#subjects-table tbody tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(v) ? '' : 'none');
+            }, 200);
+        });
+    })();
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelector('.dashboard-container').classList.add('show');
+        try {
+            const table = $('#subjects-table');
+            const thead = table.find('thead');
+            const filterRow = $('<tr>').addClass('filters');
+            thead.find('tr').first().children().each(function() {
+                const th = $('<th>');
+                if ($(this).find('input[type="checkbox"]').length) {
+                    th.html('');
+                } else if ($(this).text().trim() === 'Actions') th.html(''); else th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
+                filterRow.append(th);
+            });
+            thead.append(filterRow);
+            const dataTable = table.DataTable({ dom: 'lrtip', orderCellsTop:true, fixedHeader:true, pageLength:10, lengthMenu:[10,25,50,100], responsive:true, columnDefs:[{orderable:false, targets:[0,-1]}] });
+            $('#subjects-table thead').on('keyup change', 'tr.filters input', function(){ const idx = $(this).closest('th').index(); const val = $(this).val(); if (dataTable.column(idx).search() !== val) dataTable.column(idx).search(val).draw(); });
+        } catch(e){}
     });
-    document.addEventListener('DOMContentLoaded', () => document.querySelector('.dashboard-container').classList.add('show'));
 
     function exportToExcel() {
         CRUD.showLoading('tableContainer');
@@ -192,4 +208,7 @@ $totalPages = 1;
         } catch (e) { alert('Request failed: ' + e.message); }
         finally { CRUD.modalLoadingStop(document.getElementById('addSubjectModal')); }
     }
+</script>
+<script>
+// No DataTables Buttons to append for subjects table
 </script>

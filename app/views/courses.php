@@ -10,7 +10,8 @@ $courses = CourseController::getAll();
         <button class="btn btn-success btn-export" onclick="exportTable('courses-table')">Export to Excel</button>
         <button class="btn btn-primary btn-print" onclick="printTable('courses-table')">Print</button>
     </div>
-    <table class="table table-bordered" id="courses-table">
+    <div class="table-responsive table-compact" id="tableContainer">
+        <table class="table data-table table-bordered" id="courses-table">
         <thead>
             <tr>
                 <th>ID</th>
@@ -34,5 +35,22 @@ $courses = CourseController::getAll();
         <?php endforeach; ?>
         </tbody>
     </table>
-</div>
+    </div>
 <?php include __DIR__ . '/partials/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const table = $('#courses-table');
+        const thead = table.find('thead');
+        const filterRow = $('<tr>').addClass('filters');
+        thead.find('tr').first().children().each(function() {
+            const th = $('<th>');
+            th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
+            filterRow.append(th);
+        });
+        thead.append(filterRow);
+        const dataTable = table.DataTable({ dom: 'lrtip', orderCellsTop:true, fixedHeader:true, pageLength:10, lengthMenu:[10,25,50,100], responsive:true });
+        $('#courses-table thead').on('keyup change', 'tr.filters input', function(){ const idx=$(this).closest('th').index(); const val=$(this).val(); if (dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw(); });
+    } catch(e){}
+});
+</script>

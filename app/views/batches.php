@@ -37,31 +37,13 @@ if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('Cour
     </div>
     <!-- Table Container -->
     <div class="advanced-table-container">
-        <!-- Table Controls -->
-        <div class="table-controls">
-            <div class="table-header">
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search batches..." value="<?= htmlspecialchars($search) ?>">
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success btn-action" onclick="exportToExcel()">
-                        <i class="fas fa-file-excel"></i> Export Excel
-                    </button>
-                    <button class="btn btn-secondary btn-action" onclick="printTable()">
-                        <i class="fas fa-print"></i> Print
-                    </button>
-                    <button class="btn btn-info btn-action" onclick="refreshTable()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- Table Controls removed (search/actions removed) -->
         <!-- Table -->
-        <div class="table-responsive position-relative" id="tableContainer">
+        <div class="table-responsive table-compact" id="tableContainer">
             <table class="table data-table" id="batches-table">
                 <thead>
                     <tr>
+                        <th width="40" class="text-center"><input type="checkbox" id="select-all-batches"></th>
                         <th width="80">ID</th>
                         <th>Name</th>
                         <th>Course</th>
@@ -74,7 +56,7 @@ if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('Cour
                 <tbody id="tableBody">
                     <?php if (empty($batches)): ?>
                         <tr>
-                            <td colspan="7">
+                            <td colspan="8">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No batches found</h4>
@@ -88,6 +70,7 @@ if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('Cour
                     <?php else: ?>
                         <?php foreach ($batches as $batch): ?>
                             <tr>
+                                <td class="text-center"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($batch['id'] ?? '') ?>"></td>
                                 <td><?= htmlspecialchars($batch['id'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($batch['name'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($batch['course'] ?? '') ?></td>
@@ -197,23 +180,25 @@ if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('Cour
 </div>
 <?php include __DIR__ . '/partials/footer.php'; ?>
 <script>
-    // Client-side search functionality with debounce
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const searchValue = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#batches-table tbody tr');
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(searchValue) ? '' : 'none';
-            });
-        }, 200);
-    });
-    // Smooth fade-in effect for page content
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelector('.dashboard-container').classList.add('show');
-    });
+document.addEventListener('DOMContentLoaded', function() {
+        try {
+        const table = $('#batches-table');
+        const thead = table.find('thead');
+        const filterRow = $('<tr>').addClass('filters');
+        thead.find('tr').first().children().each(function() {
+            const th = $('<th>');
+            // skip checkbox column filters
+            if ($(this).find('input[type="checkbox"]').length) {
+                th.html('');
+            } else if ($(this).text().trim() === 'Actions') th.html(''); else th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
+            filterRow.append(th);
+        });
+        thead.append(filterRow);
+        const dataTable = table.DataTable({ dom: 'lrtip', orderCellsTop:true, fixedHeader:true, pageLength:10, lengthMenu:[10,25,50,100], responsive:true, columnDefs:[{orderable:false, targets:[0,-1]}] });
+        $('#batches-table thead').on('keyup change','tr.filters input', function(){ const idx=$(this).closest('th').index(); const val=$(this).val(); if(dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw(); });
+    } catch(e){}
+    document.querySelector('.dashboard-container').classList.add('show');
+});
     // Export to Excel
     function exportToExcel() {
         showLoading();
@@ -280,7 +265,7 @@ if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('Cour
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'f') {
             e.preventDefault();
-            document.getElementById('searchInput').focus();
+            const si = document.getElementById('searchInput'); if (si) si.focus();
         }
         if (e.ctrlKey && e.key === 'n') {
             e.preventDefault();

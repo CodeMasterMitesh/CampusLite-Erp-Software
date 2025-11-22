@@ -2,7 +2,7 @@
     <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-12">
-                <span class="text-muted d-block w-100 text-center">&copy; <?= date('Y') ?> Tuition360. All rights reserved.</span>
+                <span class="text-muted d-block w-100 text-center">&copy; <?= date('Y') ?> CampusLite ERP. All rights reserved.</span>
             </div>
         </div>
     </div>
@@ -12,14 +12,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="../../../public/assets/js/export-print.js"></script>
 <script src="../../../public/assets/js/crud-helpers.js"></script>
-<!-- DataTables (jQuery required) + Buttons (ColVis) -->
+<script src="../../../public/assets/js/batch-actions.js"></script>
+<!-- DataTables (jQuery required) -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.colVis.min.js"></script>
 <script>
     // Add active class to current page in navbar
     document.addEventListener('DOMContentLoaded', function() {

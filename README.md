@@ -1,4 +1,4 @@
-# Tuition360 Management System
+# CampusLite ERP Management System
 # password
 **Project name (example):** TutorSphere (change as you like)
 

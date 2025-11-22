@@ -23,29 +23,9 @@ $totalPages = 1;
         </div>
         <!-- Table Container -->
         <div class="advanced-table-container">
-            <!-- Table Controls -->
-            <div class="table-controls">
-                <div class="table-header">
-                    <div class="search-box">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" class="form-control" id="searchInput" placeholder="Search branches..." value="<?= htmlspecialchars($search) ?>">
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn btn-success btn-action" onclick="exportToExcel()">
-                            <i class="fas fa-file-excel"></i> Export Excel
-                        </button>
-                        <button class="btn btn-secondary btn-action" onclick="printTable()">
-                            <i class="fas fa-print"></i> Print
-                        </button>
-                        <button class="btn btn-info btn-action" onclick="refreshTable()">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Table -->
-            <div class="table-responsive position-relative" id="tableContainer">
+            <!-- table-controls removed (search/actions removed) -->
+            <div class="table-responsive table-compact" id="tableContainer">
+                <!-- Table -->
                 <table class="table data-table" id="branches-table">
                     <thead>
                         <tr>
@@ -150,6 +130,24 @@ $totalPages = 1;
             </div>
             <?php endif; ?>
         </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const table = $('#branches-table');
+                const thead = table.find('thead');
+                const filterRow = $('<tr>').addClass('filters');
+                thead.find('tr').first().children().each(function() {
+                    const th = $('<th>');
+                    if ($(this).text().trim() === 'Actions') th.html(''); else th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
+                    filterRow.append(th);
+                });
+                thead.append(filterRow);
+
+                const dataTable = table.DataTable({ dom: 'lrtip', orderCellsTop:true, fixedHeader:true, pageLength:10, lengthMenu:[10,25,50,100], responsive:true, columnDefs:[{orderable:false, targets:-1}] });
+                $('#branches-table thead').on('keyup change', 'tr.filters input', function(){ const idx = $(this).closest('th').index(); const val = $(this).val(); if (dataTable.column(idx).search() !== val) dataTable.column(idx).search(val).draw(); });
+            } catch(e){}
+        });
+        </script>
     </div>
 
     <!-- Add Branch Modal -->
@@ -195,20 +193,8 @@ $totalPages = 1;
         </div>
     </div>
 <?php include __DIR__ . '/partials/footer.php'; ?>
- <script>
-        // Client-side search functionality with debounce
-        let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const searchValue = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('#branches-table tbody tr');
-                rows.forEach(row => {
-                    const text = row.innerText.toLowerCase();
-                    row.style.display = text.includes(searchValue) ? '' : 'none';
-                });
-            }, 200);
-        });
+<script>
+        // search input removed — clients may use DataTables per-column filters instead
     // Smooth fade-in effect for page content
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.dashboard-container').classList.add('show');
@@ -301,7 +287,7 @@ $totalPages = 1;
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'f') {
                 e.preventDefault();
-                document.getElementById('searchInput').focus();
+                const si = document.getElementById('searchInput'); if (si) si.focus();
             }
             if (e.ctrlKey && e.key === 'n') {
                 e.preventDefault();
@@ -309,3 +295,6 @@ $totalPages = 1;
             }
         });
     </script>
+<script>
+// No DataTables Buttons to append for branches table
+</script>

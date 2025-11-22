@@ -30,28 +30,9 @@ $totalPages = 1;
     </div>
     <!-- Table Container -->
     <div class="advanced-table-container">
-        <!-- Table Controls -->
-        <div class="table-controls">
-            <div class="table-header">
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search attendance..." value="<?= htmlspecialchars($search) ?>">
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success btn-action" onclick="exportToExcel()">
-                        <i class="fas fa-file-excel"></i> Export Excel
-                    </button>
-                    <button class="btn btn-secondary btn-action" onclick="printTable()">
-                        <i class="fas fa-print"></i> Print
-                    </button>
-                    <button class="btn btn-info btn-action" onclick="refreshTable()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- table-controls removed (search/actions removed) -->
         <!-- Table -->
-        <div class="table-responsive position-relative" id="tableContainer">
+        <div class="table-responsive" id="tableContainer">
             <table class="table data-table" id="attendance-table">
                 <thead>
                     <tr>
@@ -181,19 +162,7 @@ $totalPages = 1;
 </div>
 <?php include __DIR__ . '/partials/footer.php'; ?>
 <script>
-    // Client-side search functionality with debounce
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const searchValue = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#attendance-table tbody tr');
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(searchValue) ? '' : 'none';
-            });
-        }, 200);
-    });
+    // search input removed — rely on DataTables filters if needed
     // Smooth fade-in effect for page content
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.dashboard-container').classList.add('show');
@@ -347,7 +316,7 @@ $totalPages = 1;
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && e.key === 'f') {
             e.preventDefault();
-            document.getElementById('searchInput').focus();
+            const si = document.getElementById('searchInput'); if (si) si.focus();
         }
         if (e.ctrlKey && e.key === 'n') {
             e.preventDefault();

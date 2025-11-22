@@ -26,20 +26,8 @@ $totalPages = 1;
         <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addLeaveModal"><i class="fas fa-plus"></i> Apply Leave</button>
     </div>
     <div class="advanced-table-container">
-        <div class="table-controls">
-            <div class="table-header">
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search leaves..." value="<?= htmlspecialchars($search) ?>">
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-success btn-action" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
-                    <button class="btn btn-secondary btn-action" onclick="printTable()"><i class="fas fa-print"></i> Print</button>
-                    <button class="btn btn-info btn-action" onclick="refreshTable()"><i class="fas fa-sync-alt"></i> Refresh</button>
-                </div>
-            </div>
-        </div>
-        <div class="table-responsive position-relative" id="tableContainer">
+        <!-- table-controls removed (search/actions removed) -->
+        <div class="table-responsive table-compact" id="tableContainer">
             <table class="table data-table" id="leaves-table">
                 <thead>
                     <tr>
@@ -111,12 +99,16 @@ $totalPages = 1;
 </div>
 <?php include __DIR__ . '/partials/footer.php'; ?>
 <script>
-    let searchTimeout;
-    document.getElementById('searchInput').addEventListener('input', function(e){ clearTimeout(searchTimeout); searchTimeout=setTimeout(()=>{ const v=e.target.value.toLowerCase(); document.querySelectorAll('#leaves-table tbody tr').forEach(r=>r.style.display=r.innerText.toLowerCase().includes(v)?'':'none'); },200);} );
-    document.addEventListener('DOMContentLoaded', ()=>document.querySelector('.dashboard-container').classList.add('show'));
-    function exportToExcel(){ showLoading(); setTimeout(()=>{ window.location.href='?page=leaves&export=excel'; hideLoading(); },800);} function printTable(){ const table=document.getElementById('leaves-table').cloneNode(true); const w=window.open('','_blank'); w.document.write(`<html><head><title>Leaves</title></head><body><h2>Leaves</h2>${table.outerHTML}</body></html>`); w.document.close(); w.print(); }
-    function refreshTable(){ showLoading(); setTimeout(()=>location.reload(),600);} function showLoading(){ const c=document.getElementById('tableContainer'); const o=document.createElement('div'); o.className='loading-overlay'; o.innerHTML='<div class="spinner-border text-primary spinner" role="status"><span class="visually-hidden">Loading...</span></div>'; c.style.position='relative'; c.appendChild(o);} function hideLoading(){ const o=document.querySelector('.loading-overlay'); if(o) o.remove(); }
-    async function viewLeave(id){ CRUD.showLoading('tableContainer'); try{ const res=await CRUD.get(`api/leaves.php?action=get&id=${encodeURIComponent(id)}`); if(res.success&&res.data){ const l=res.data; document.getElementById('leaveId').value=l.id||''; document.querySelector('#addLeaveForm [name="employee"]').value=l.employee||''; document.querySelector('#addLeaveForm [name="from_date"]').value=l.from_date||''; document.querySelector('#addLeaveForm [name="to_date"]').value=l.to_date||''; document.querySelector('#addLeaveForm [name="type"]').value=l.leave_type||''; document.getElementById('leaveBranchId').value=l.branch_id??0; const modalEl=document.getElementById('addLeaveModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show(); } else alert('Not found'); }catch(e){ alert('Failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    async function deleteLeave(id){ if(!confirm('Delete leave '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res=await CRUD.post('api/leaves.php?action=delete', p); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    async function saveLeave(){ const form=document.getElementById('addLeaveForm'); const params=new FormData(form); if(!params.get('employee')){ alert('Employee required'); return;} CRUD.showLoading('tableContainer'); try{ const res=await CRUD.post('api/leaves.php?action=apply', params); if(res.success){ const modalEl=document.getElementById('addLeaveModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed'); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const table = $('#leaves-table');
+        const thead = table.find('thead');
+        const filterRow = $('<tr>').addClass('filters');
+        thead.find('tr').first().children().each(function(){ const th=$('<th>'); if($(this).text().trim()==='Actions') th.html(''); else th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">'); filterRow.append(th); });
+        thead.append(filterRow);
+        const dataTable = table.DataTable({ dom: 'lrtip', orderCellsTop:true, fixedHeader:true, pageLength:10, lengthMenu:[10,25,50,100], responsive:true, columnDefs:[{orderable:false, targets:-1}] });
+        $('#leaves-table thead').on('keyup change','tr.filters input', function(){ const idx=$(this).closest('th').index(); const val=$(this).val(); if(dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw(); });
+    } catch(e){}
+    document.querySelector('.dashboard-container').classList.add('show');
+});
 </script>
