@@ -6,7 +6,8 @@ $action = $_REQUEST['action'] ?? ($_SERVER['REQUEST_METHOD']==='GET' ? 'list' : 
 try {
     switch ($action) {
         case 'list':
-            $rows = FacultyController::getAll();
+            $branch_id = isset($_GET['branch_id']) ? intval($_GET['branch_id']) : null;
+            $rows = FacultyController::getAll($branch_id);
             echo json_encode(['success'=>true,'data'=>$rows]);
             break;
         case 'get':

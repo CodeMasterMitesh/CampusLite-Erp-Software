@@ -13,7 +13,9 @@ try {
             $id = intval($_GET['id'] ?? 0);
             $rows = SubjectController::getAll();
             $found = null;
-            foreach ($rows as $r) if ($r['id']===$id) $found=$r;
+            foreach ($rows as $r) {
+                if (isset($r['id']) && intval($r['id']) === $id) { $found = $r; break; }
+            }
             if ($found) send_json(true, null, $found); else send_json(false, 'Subject not found');
             break;
         case 'create':

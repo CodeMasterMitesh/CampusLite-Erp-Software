@@ -7,6 +7,10 @@ try {
     switch ($action) {
         case 'list':
             $rows = EmployeeController::getAll();
+            // Ensure dob is present for birthday reminders
+            foreach ($rows as &$row) {
+                if (!isset($row['dob'])) $row['dob'] = $row['dob'] ?? '';
+            }
             echo json_encode(['success'=>true,'data'=>$rows]);
             break;
         case 'get':

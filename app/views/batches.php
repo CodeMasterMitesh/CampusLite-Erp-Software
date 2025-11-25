@@ -20,21 +20,22 @@ if (file_exists($branchFile)) { require_once $branchFile; if (class_exists('Bran
 $courseFile = __DIR__ . '/../controllers/CourseController.php';
 $courses = [];
 if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('CourseController') && method_exists('CourseController','getAll')) $courses = CourseController::getAll(); }
+$courseMap = [];
+foreach ($courses as $c) { $courseMap[$c['id']] = $c['title'] ?? $c['name'] ?? ''; }
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
 <div class="container-fluid dashboard-container fade-in">
-    <!-- Breadcrumbs -->
-    <div class="breadcrumb-container d-flex justify-content-between align-items-center">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="index.php?page=dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
-                <li class="breadcrumb-item active" aria-current="page"><i class="fas fa-layer-group"></i> Batches</li>
-            </ol>
-        </nav>
-        <button class="btn btn-primary btn-action" data-bs-toggle="modal" data-bs-target="#addBatchModal">
-            <i class="fas fa-plus"></i> Add New Batch
-        </button>
-    </div>
+    <?php
+    $page_icon = 'fas fa-layer-group';
+    $page_title = 'Batches';
+    $show_actions = true;
+    $action_buttons = [
+        ['label' => 'Export Excel', 'class' => 'btn-primary', 'onclick' => 'exportToExcel()', 'icon' => 'fas fa-file-excel'],
+        ['id' => 'delete-selected-batches-header', 'label' => 'Delete Selected', 'class' => 'btn-danger', 'onclick' => "deleteSelectedBatches()", 'icon' => 'fas fa-trash']
+    ];
+    $add_button = ['label' => 'Add New Batch', 'onclick' => "showAddModal('addBatchModal','addBatchForm')"];
+    include __DIR__ . '/partials/page-header.php';
+    ?>
     <!-- Table Container -->
     <div class="advanced-table-container">
         <!-- Table Controls removed (search/actions removed) -->
@@ -73,7 +74,15 @@ if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('Cour
                                 <td class="text-center"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($batch['id'] ?? '') ?>"></td>
                                 <td><?= htmlspecialchars($batch['id'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($batch['name'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($batch['course'] ?? '') ?></td>
+                                <td>
+                                    <?php
+                                    $cid = $batch['course_id'] ?? $batch['course'] ?? null;
+                                    $courseName = '';
+                                    if ($cid && isset($courseMap[$cid])) $courseName = $courseMap[$cid];
+                                    elseif (!empty($batch['course'])) $courseName = $batch['course'];
+                                    ?>
+                                    <?= htmlspecialchars($courseName) ?>
+                                </td>
                                 <td><?= htmlspecialchars($batch['start_date'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($batch['end_date'] ?? '') ?></td>
                                 <td>
@@ -173,103 +182,10 @@ if (file_exists($courseFile)) { require_once $courseFile; if (class_exists('Cour
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveBatch()">Save Batch</button>
+                <button type="button" id="saveBatchBtn" class="btn btn-primary" onclick="saveBatch()">Save Batch</button>
             </div>
         </div>
     </div>
 </div>
 <?php include __DIR__ . '/partials/footer.php'; ?>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-        try {
-        const table = $('#batches-table');
-        const thead = table.find('thead');
-        const filterRow = $('<tr>').addClass('filters');
-        thead.find('tr').first().children().each(function() {
-            const th = $('<th>');
-            // skip checkbox column filters
-            if ($(this).find('input[type="checkbox"]').length) {
-                th.html('');
-            } else if ($(this).text().trim() === 'Actions') th.html(''); else th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
-            filterRow.append(th);
-        });
-        thead.append(filterRow);
-        const dataTable = table.DataTable({ dom: 'lrtip', orderCellsTop:true, fixedHeader:true, pageLength:10, lengthMenu:[10,25,50,100], responsive:true, columnDefs:[{orderable:false, targets:[0,-1]}] });
-        $('#batches-table thead').on('keyup change','tr.filters input', function(){ const idx=$(this).closest('th').index(); const val=$(this).val(); if(dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw(); });
-    } catch(e){}
-    document.querySelector('.dashboard-container').classList.add('show');
-});
-    // Export to Excel
-    function exportToExcel() {
-        showLoading();
-        setTimeout(() => {
-            window.location.href = '?page=batches&export=excel';
-            hideLoading();
-        }, 1000);
-    }
-    // Print table
-    function printTable() {
-        const table = document.getElementById('batches-table').cloneNode(true);
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Batches Report</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f8f9fa; }
-                    </style>
-                </head>
-                <body>
-                    <h2>Batches Report</h2>
-                    ${table.outerHTML}
-                    <p>Generated on: ${new Date().toLocaleDateString()}</p>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-    }
-    // Refresh table
-    function refreshTable() {
-        showLoading();
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
-    }
-    // Loading states
-    function showLoading() {
-        const container = document.getElementById('tableContainer');
-        const overlay = document.createElement('div');
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div class="spinner-border text-primary spinner" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        `;
-        container.style.position = 'relative';
-        container.appendChild(overlay);
-    }
-    function hideLoading() {
-        const overlay = document.querySelector('.loading-overlay');
-        if (overlay) overlay.remove();
-    }
-    // Batch management functions
-    async function editBatch(id){ CRUD.showLoading('tableContainer'); try{ const res=await CRUD.get(`api/batches.php?action=get&id=${encodeURIComponent(id)}`); if(res.success&&res.data){ const b=res.data; document.getElementById('batchId').value=b.id||''; document.querySelector('#addBatchForm [name="name"]').value=b.title||b.name||''; document.querySelector('#addBatchForm [name="start_date"]').value=b.start_date||''; document.querySelector('#addBatchForm [name="end_date"]').value=b.end_date||''; document.getElementById('batchCourse').value=b.course_id||0; const modalEl=document.getElementById('addBatchModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show(); } else alert('Batch not found'); }catch(e){ alert('Failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    async function viewBatch(id){ await editBatch(id); const form=document.getElementById('addBatchForm'); Array.from(form.elements).forEach(el=>el.disabled=true); const saveBtn=document.querySelector('#addBatchModal .btn-primary'); if(saveBtn) saveBtn.style.display='none'; document.querySelector('#addBatchModal .modal-title').innerText='View Batch'; }
-    async function deleteBatch(id){ if(!confirm('Delete batch '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res=await CRUD.post('api/batches.php?action=delete', p); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    async function saveBatch(){ const form=document.getElementById('addBatchForm'); const params=new FormData(form); if(!params.get('name')){ alert('Name required'); return;} CRUD.showLoading('tableContainer'); try{ const res=await CRUD.post('api/batches.php?action=create', params); if(res.success){ const modalEl=document.getElementById('addBatchModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'f') {
-            e.preventDefault();
-            const si = document.getElementById('searchInput'); if (si) si.focus();
-        }
-        if (e.ctrlKey && e.key === 'n') {
-            e.preventDefault();
-            document.querySelector('[data-bs-target="#addBatchModal"]').click();
-        }
-    });
-</script>
+<script src="../../../public/assets/js/batches.js"></script>

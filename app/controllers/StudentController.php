@@ -19,15 +19,72 @@ class StudentController {
     }
     public static function create($data) {
         global $conn;
-        $stmt = mysqli_prepare($conn, "INSERT INTO students (branch_id, name, email, mobile, dob, father_name, address, registration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, 'isssssssi', $data['branch_id'], $data['name'], $data['email'], $data['mobile'], $data['dob'], $data['father_name'], $data['address'], $data['registration_date'], $data['status']);
-        return mysqli_stmt_execute($stmt);
+        // Insert student
+        $stmt = mysqli_prepare($conn, "INSERT INTO students (branch_id, name, email, mobile, dob, education, college_name, father_name, address, pincode, state, city, area, registration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $registration_date = $data['registration_date'] ?? date('Y-m-d');
+        $status = ($data['status'] === 'active' || $data['status'] == 1) ? 1 : 0;
+        mysqli_stmt_bind_param($stmt, 'issssssssssssssi',
+            $data['branch_id'],
+            $data['name'],
+            $data['email'],
+            $data['mobile'],
+            $data['dob'],
+            $data['education'],
+            $data['college_name'],
+            $data['father_name'],
+            $data['address'],
+            $data['pincode'],
+            $data['state'],
+            $data['city'],
+            $data['area'],
+            $registration_date,
+            $status
+        );
+        $ok = mysqli_stmt_execute($stmt);
+        if ($ok) {
+            $student_id = mysqli_insert_id($conn);
+            // Handle course mapping
+            if (!empty($data['courses']) && is_array($data['courses'])) {
+                foreach ($data['courses'] as $course_id) {
+                    $course_id = intval($course_id);
+                    mysqli_query($conn, "INSERT INTO student_courses (student_id, course_id) VALUES ($student_id, $course_id)");
+                }
+            }
+        }
+        return $ok;
     }
     public static function update($id, $data) {
         global $conn;
-        $stmt = mysqli_prepare($conn, "UPDATE students SET name=?, email=?, mobile=?, dob=?, father_name=?, address=?, status=? WHERE id=?");
-        mysqli_stmt_bind_param($stmt, 'ssssssii', $data['name'], $data['email'], $data['mobile'], $data['dob'], $data['father_name'], $data['address'], $data['status'], $id);
-        return mysqli_stmt_execute($stmt);
+        $status = ($data['status'] === 'active' || $data['status'] == 1) ? 1 : 0;
+        $stmt = mysqli_prepare($conn, "UPDATE students SET name=?, email=?, mobile=?, dob=?, education=?, college_name=?, father_name=?, address=?, pincode=?, state=?, city=?, area=?, status=? WHERE id=?");
+        mysqli_stmt_bind_param($stmt, 'ssssssssssssii',
+            $data['name'],
+            $data['email'],
+            $data['mobile'],
+            $data['dob'],
+            $data['education'],
+            $data['college_name'],
+            $data['father_name'],
+            $data['address'],
+            $data['pincode'],
+            $data['state'],
+            $data['city'],
+            $data['area'],
+            $status,
+            $id
+        );
+        $ok = mysqli_stmt_execute($stmt);
+        if ($ok) {
+            // Update course mapping: remove old, insert new
+            mysqli_query($conn, "DELETE FROM student_courses WHERE student_id = $id");
+            if (!empty($data['courses']) && is_array($data['courses'])) {
+                foreach ($data['courses'] as $course_id) {
+                    $course_id = intval($course_id);
+                    mysqli_query($conn, "INSERT INTO student_courses (student_id, course_id) VALUES ($id, $course_id)");
+                }
+            }
+        }
+        return $ok;
     }
     public static function delete($id) {
         global $conn;

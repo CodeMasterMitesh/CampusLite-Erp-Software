@@ -8,8 +8,17 @@ $action = $_REQUEST['action'] ?? ($method === 'GET' ? 'list' : 'create');
 try {
     switch ($action) {
         case 'list':
-            $rows = StudentController::getAll();
+            $branch_id = isset($_GET['branch_id']) ? intval($_GET['branch_id']) : null;
+            $rows = StudentController::getAll($branch_id);
             send_json(true, null, $rows);
+            break;
+        case 'get_courses':
+            $id = intval($_GET['id'] ?? 0);
+            require_once __DIR__ . '/../config/db.php';
+            $courses = [];
+            $res = mysqli_query($conn, "SELECT course_id FROM student_courses WHERE student_id = $id");
+            while ($row = mysqli_fetch_assoc($res)) $courses[] = $row;
+            send_json(true, null, $courses);
             break;
         case 'get':
             $id = intval($_GET['id'] ?? 0);

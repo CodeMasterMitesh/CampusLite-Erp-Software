@@ -48,5 +48,22 @@ if ($action === 'report') {
     echo json_encode(['success' => true, 'attendance' => $rows]);
     exit;
 }
+if ($action === 'calendar') {
+    // Return daily lecture counts and details for calendar
+    $sql = "SELECT date, branch_id, COUNT(*) as count FROM attendance WHERE entity_type IN ('faculty','employee') GROUP BY date, branch_id ORDER BY date DESC";
+    $result = mysqli_query($conn, $sql);
+    $rows = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        // Fetch lecture details for this date/branch
+        $details = [];
+        $detail_sql = "SELECT a.*, b.name as branch_name, u.name as faculty_name, u2.name as employee_name FROM attendance a LEFT JOIN branches b ON a.branch_id=b.id LEFT JOIN users u ON a.entity_id=u.id AND a.entity_type='faculty' LEFT JOIN users u2 ON a.entity_id=u2.id AND a.entity_type='employee' WHERE a.date='" . mysqli_real_escape_string($conn, $row['date']) . "' AND a.branch_id=" . intval($row['branch_id']) . " AND a.entity_type IN ('faculty','employee')";
+        $detail_res = mysqli_query($conn, $detail_sql);
+        while ($d = mysqli_fetch_assoc($detail_res)) $details[] = $d;
+        $row['lectures'] = $details;
+        $rows[] = $row;
+    }
+    echo json_encode(['success'=>true,'data'=>$rows]);
+    exit;
+}
 echo json_encode(['success' => false, 'message' => 'Invalid action']);
 ?>
