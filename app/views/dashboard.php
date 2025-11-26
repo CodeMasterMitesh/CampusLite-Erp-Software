@@ -144,47 +144,17 @@ foreach ($branches as $b) {
             </div>
         </div>
     </div>
-<!-- Branch Students Modal -->
-<div class="modal fade" id="branchStudentsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Branch Students</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="branchStudentsTableContainer"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Branch Faculty Modal -->
-<div class="modal fade" id="branchFacultyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Branch Faculty</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="branchFacultyTableContainer"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
+    
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initDashboard() {
     // Open students modal
     document.querySelectorAll('.branch-students').forEach(function(el) {
         el.addEventListener('click', function() {
             const branchId = el.getAttribute('data-branch');
-            fetch(`api/students.php?action=list&branch_id=${branchId}`)
-                .then(res => res.json())
+            fetchJson(`api/students.php?action=list&branch_id=${branchId}`)
                 .then(data => {
                     let html = `<table class='table table-striped table-bordered' id='branchStudentsTable'><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody>`;
-                    if (data.success && Array.isArray(data.data)) {
+                    if (data && data.success && Array.isArray(data.data)) {
                         data.data.forEach(s => {
                             html += `<tr><td>${s.id}</td><td>${s.name}</td><td>${s.email}</td><td>${s.mobile || s.phone || ''}</td><td>${s.status}</td></tr>`;
                         });
@@ -192,31 +162,34 @@ document.addEventListener('DOMContentLoaded', function() {
                         html += `<tr><td colspan='5'>No students found</td></tr>`;
                     }
                     html += `</tbody></table>`;
-                    document.getElementById('branchStudentsTableContainer').innerHTML = html;
+                    const container = document.getElementById('branchStudentsTableContainer');
+                    if (container) container.innerHTML = html;
                     // Initialize DataTable
                     setTimeout(() => {
                         if (window.$ && window.$.fn.dataTable) {
-                            $('#branchStudentsTable').DataTable({
-                                pageLength: 10,
-                                lengthMenu: [10, 25, 50, 100],
-                                searching: true
-                            });
+                            $('#branchStudentsTable').DataTable({ pageLength: 10, lengthMenu: [10,25,50,100], searching: true });
                         }
                     }, 100);
-                    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('branchStudentsModal'));
-                    modal.show();
+                    const modalEl = document.getElementById('branchStudentsModal');
+                    if (modalEl) {
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+                }).catch(err => {
+                    console.error('Failed to load branch students', err);
+                    alert('Could not load students for this branch. See console for details.');
                 });
         });
     });
+
     // Open faculty modal
     document.querySelectorAll('.branch-faculty').forEach(function(el) {
         el.addEventListener('click', function() {
             const branchId = el.getAttribute('data-branch');
-            fetch(`api/faculty.php?action=list&branch_id=${branchId}`)
-                .then(res => res.json())
+            fetchJson(`api/faculty.php?action=list&branch_id=${branchId}`)
                 .then(data => {
                     let html = `<table class='table table-striped table-bordered' id='branchFacultyTable'><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody>`;
-                    if (data.success && Array.isArray(data.data)) {
+                    if (data && data.success && Array.isArray(data.data)) {
                         data.data.forEach(f => {
                             html += `<tr><td>${f.id}</td><td>${f.name}</td><td>${f.email}</td><td>${f.mobile || ''}</td><td>${f.status}</td></tr>`;
                         });
@@ -224,33 +197,142 @@ document.addEventListener('DOMContentLoaded', function() {
                         html += `<tr><td colspan='5'>No faculty found</td></tr>`;
                     }
                     html += `</tbody></table>`;
-                    document.getElementById('branchFacultyTableContainer').innerHTML = html;
+                    const container = document.getElementById('branchFacultyTableContainer');
+                    if (container) container.innerHTML = html;
                     // Initialize DataTable
                     setTimeout(() => {
                         if (window.$ && window.$.fn.dataTable) {
-                            $('#branchFacultyTable').DataTable({
-                                pageLength: 10,
-                                lengthMenu: [10, 25, 50, 100],
-                                searching: true
-                            });
+                            $('#branchFacultyTable').DataTable({ pageLength: 10, lengthMenu: [10,25,50,100], searching: true });
                         }
                     }, 100);
-                    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('branchFacultyModal'));
-                    modal.show();
+                    const modalEl = document.getElementById('branchFacultyModal');
+                    if (modalEl) {
+                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                        modal.show();
+                    }
+                }).catch(err => {
+                    console.error('Failed to load branch faculty', err);
+                    alert('Could not load faculty for this branch. See console for details.');
                 });
         });
     });
-});
+
+    // Birthday reminders
+    var remindersEl = document.getElementById('dashboard-reminders');
+    if (remindersEl) {
+        Promise.all([
+            fetchJson('api/students.php?action=list'),
+            fetchJson('api/employee.php?action=list')
+        ]).then(([students, employees]) => {
+            let today = new Date();
+            let mmdd = (today.getMonth()+1).toString().padStart(2,'0') + '-' + today.getDate().toString().padStart(2,'0');
+            let studentBirthdays = (students.data||[]).filter(s => (s.dob||'').substr(5,5) === mmdd);
+            let employeeBirthdays = (employees.data||[]).filter(e => (e.dob||'').substr(5,5) === mmdd);
+            let html = '';
+            if (studentBirthdays.length) {
+                html += `<div><strong>Student Birthdays Today:</strong><ul>`;
+                studentBirthdays.forEach(s => { html += `<li>${s.name} (${s.dob})</li>`; });
+                html += `</ul></div>`;
+            }
+            if (employeeBirthdays.length) {
+                html += `<div><strong>Employee Birthdays Today:</strong><ul>`;
+                employeeBirthdays.forEach(e => { html += `<li>${e.name} (${e.dob})</li>`; });
+                html += `</ul></div>`;
+            }
+            if (!html) html = '<div class="text-muted">No birthdays today.</div>';
+            remindersEl.innerHTML = html;
+        }).catch(err => {
+            console.error('Failed to load reminders', err);
+            remindersEl.innerHTML = '<div class="text-muted">Could not load reminders.</div>';
+        });
+    }
+
+    // Calendar initialization
+    var calendarEl = document.getElementById('dashboard-calendar');
+    if (calendarEl) {
+        if (typeof FullCalendar === 'undefined') {
+            calendarEl.innerHTML = '<div class="text-muted">Calendar library not loaded. Install FullCalendar CSS/JS or check console.</div>';
+            console.error('FullCalendar is not defined. Check that the script loaded correctly.');
+        } else {
+            // remove any existing calendar content
+            calendarEl.innerHTML = '';
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 400,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: async function(fetchInfo, successCallback, failureCallback) {
+                    try {
+                        let data = await fetchJson('api/attendance.php?action=calendar');
+                        let events = [];
+                        if (data.success && Array.isArray(data.data)) {
+                            data.data.forEach(ev => {
+                                events.push({ title: ev.count + ' Lectures', start: ev.date, extendedProps: { branch_id: ev.branch_id, lectures: ev.lectures } });
+                            });
+                        }
+                        successCallback(events);
+                    } catch (e) { failureCallback(e); }
+                },
+                eventClick: function(info) {
+                    let lectures = info.event.extendedProps.lectures || [];
+                    let html = `<table class='table table-bordered'><thead><tr><th>Branch</th><th>Faculty/Employee</th><th>Time</th></tr></thead><tbody>`;
+                    if (lectures.length) {
+                        lectures.forEach(l => { html += `<tr><td>${l.branch_name || l.branch_id}</td><td>${l.faculty_name || l.employee_name || ''}</td><td>${l.time || ''}</td></tr>`; });
+                    } else { html += `<tr><td colspan='3'>No lectures found</td></tr>`; }
+                    html += `</tbody></table>`;
+                    let modal = document.createElement('div');
+                    modal.className = 'modal fade';
+                    modal.innerHTML = `<div class='modal-dialog'><div class='modal-content'><div class='modal-header'><h5 class='modal-title'>Lectures on ${info.event.startStr}</h5><button type='button' class='btn-close' data-bs-dismiss='modal'></button></div><div class='modal-body'>${html}</div></div></div>`;
+                    document.body.appendChild(modal);
+                    var bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                    modal.addEventListener('hidden.bs.modal', function() { document.body.removeChild(modal); });
+                }
+            });
+            calendar.render();
+        }
+    }
+}
+
+// expose initializer so AJAX loader can call it after replacing content
+window.initPage = window.initDashboard = initDashboard;
+
+// call once on initial load (but only after shared helpers are available)
+(function ensureInit() {
+    if (typeof fetchJson === 'function') {
+        initDashboard();
+        return;
+    }
+    // poll for a short time in case common.js loads after this script
+    var attempts = 0;
+    var iv = setInterval(function() {
+        attempts++;
+        if (typeof fetchJson === 'function') {
+            clearInterval(iv);
+            initDashboard();
+        } else if (attempts > 50) { // ~5s timeout
+            clearInterval(iv);
+            console.error('initDashboard: fetchJson not found after waiting; page init skipped');
+        }
+    }, 100);
+})();
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
+<!-- FullCalendar CSS was removed because the CDN path used returned 404. If you need FullCalendar styles, download the correct CSS file locally or replace with a working CDN path. -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Calendar setup
     var calendarEl = document.getElementById('dashboard-calendar');
     if (calendarEl) {
-        var calendar = new FullCalendar.Calendar(calendarEl, {
+        if (typeof FullCalendar === 'undefined') {
+            calendarEl.innerHTML = '<div class="text-muted">Calendar library not loaded. Install FullCalendar CSS/JS or check console.</div>';
+            console.error('FullCalendar is not defined. Check that the script loaded correctly.');
+        } else {
+            var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             height: 400,
             headerToolbar: {
@@ -261,8 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
             events: async function(fetchInfo, successCallback, failureCallback) {
                 // Fetch lecture counts per day (replace with your API)
                 try {
-                    let res = await fetch('api/attendance.php?action=calendar');
-                    let data = await res.json();
+                    let data = await fetchJson('api/attendance.php?action=calendar');
                     // data should be [{date: 'YYYY-MM-DD', count: N, branch_id, lectures: [...]}, ...]
                     let events = [];
                     if (data.success && Array.isArray(data.data)) {
@@ -298,15 +379,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.addEventListener('hidden.bs.modal', function() { document.body.removeChild(modal); });
             }
         });
-        calendar.render();
+            calendar.render();
+        }
     }
 
     // Birthday reminders
     var remindersEl = document.getElementById('dashboard-reminders');
     if (remindersEl) {
-        Promise.all([
-            fetch('api/students.php?action=list').then(r => r.json()),
-            fetch('api/employee.php?action=list').then(r => r.json())
+            Promise.all([
+            fetchJson('api/students.php?action=list'),
+            fetchJson('api/employee.php?action=list')
         ]).then(([students, employees]) => {
             let today = new Date();
             let mmdd = (today.getMonth()+1).toString().padStart(2,'0') + '-' + today.getDate().toString().padStart(2,'0');
@@ -325,6 +407,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (!html) html = '<div class="text-muted">No birthdays today.</div>';
             remindersEl.innerHTML = html;
+        }).catch(err => {
+            console.error('Failed to load reminders', err);
+            remindersEl.innerHTML = '<div class="text-muted">Could not load reminders.</div>';
         });
     }
 });

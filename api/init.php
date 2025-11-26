@@ -1,6 +1,9 @@
 <?php
-// api/init.php - start session and enforce authentication for API endpoints
-session_start();
+// api/init.php - centralized session start and auth enforcement for API endpoints
+// Mark that the application is initialized so controllers/views included by APIs allow access
+if (!defined('APP_INIT')) define('APP_INIT', true);
+require_once __DIR__ . '/../config/session.php';
+start_secure_session();
 
 // list of API scripts that are allowed to be public (no session required)
 $publicApis = [

@@ -1,6 +1,10 @@
-document.addEventListener('DOMContentLoaded', function () {
+function initBatchActions() {
     // Attach handlers for select-all and row selection for any table with .data-table
     document.querySelectorAll('table.data-table').forEach(function (table) {
+        // avoid attaching twice
+        if (table.dataset.batchActionsAttached) return;
+        table.dataset.batchActionsAttached = '1';
+
         const tableId = table.id || '';
         if (!tableId) return;
         const selectAll = document.getElementById('select-all-' + tableId.replace('-table', '')) || document.getElementById('select-all-' + tableId);
@@ -13,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const checked = table.querySelectorAll('tbody input.row-select:checked');
             const count = checked.length;
             const pageName = tableId.replace('-table', '');
-            const deleteBtn = document.getElementById('delete-selected-' + pageName);
+            const deleteBtn = document.getElementById('delete-selected-' + pageName) || document.getElementById('delete-selected-' + pageName + '-header');
             if (deleteBtn) {
                 deleteBtn.style.display = count > 0 ? 'inline-block' : 'none';
                 deleteBtn.dataset.count = count;
@@ -33,18 +37,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Use event delegation for row checkboxes to survive DataTables redraws
-        table.querySelector('tbody').addEventListener('change', function (e) {
-            const target = e.target;
-            if (!target || !target.matches('input.row-select')) return;
-            const all = table.querySelectorAll('tbody input.row-select');
-            const checked = table.querySelectorAll('tbody input.row-select:checked');
-            if (selectAllEl) selectAllEl.checked = (all.length > 0 && checked.length === all.length);
-            updateDeleteButton();
-        });
+        const tbody = table.querySelector('tbody');
+        if (tbody) {
+            tbody.addEventListener('change', function (e) {
+                const target = e.target;
+                if (!target || !target.matches('input.row-select')) return;
+                const all = table.querySelectorAll('tbody input.row-select');
+                const checked = table.querySelectorAll('tbody input.row-select:checked');
+                if (selectAllEl) selectAllEl.checked = (all.length > 0 && checked.length === all.length);
+                updateDeleteButton();
+            });
+        }
 
         // Wire delete button
         const pageName = tableId.replace('-table', '');
-        const deleteBtn = document.getElementById('delete-selected-' + pageName);
+        const deleteBtn = document.getElementById('delete-selected-' + pageName) || document.getElementById('delete-selected-' + pageName + '-header');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', async function () {
                 const selected = Array.from(table.querySelectorAll('tbody input.row-select:checked')).map(i => i.dataset.id).filter(Boolean);
@@ -70,4 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
-});
+}
+
+window.initBatchActions = initBatchActions;
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBatchActions); else try { initBatchActions(); } catch(e) { console.error('initBatchActions immediate failed', e); }

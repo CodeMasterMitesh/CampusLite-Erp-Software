@@ -1,20 +1,22 @@
 // students.js - extracted from students.php
-document.addEventListener('DOMContentLoaded', function() {
+function initStudents() {
     // Initialize DataTable with column filters
-    const dt = initAdvancedTable('#students-table');
+    try { initAdvancedTable('#students-table'); } catch(e) { console.error('initStudents: initAdvancedTable failed', e); }
 
     // page fade-in
     const container = document.querySelector('.dashboard-container');
     if (container) container.classList.add('show');
 
-    // Prevent table-row hover effects from shifting layout (same small inline style as before)
-    const style = document.createElement('style');
-    style.innerHTML = `
-        #students-table tbody tr { transition: none !important; }
-        #students-table tbody tr:hover { transform: none !important; box-shadow: none !important; margin: 0 !important; }
-        #students-table thead tr.filters input { width: 100%; }
-    `;
-    document.head.appendChild(style);
+    // Prevent table-row hover effects from shifting layout
+    try {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #students-table tbody tr { transition: none !important; }
+            #students-table tbody tr:hover { transform: none !important; box-shadow: none !important; margin: 0 !important; }
+            #students-table thead tr.filters input { width: 100%; }
+        `;
+        document.head.appendChild(style);
+    } catch (e) { console.error('initStudents: failed to inject style', e); }
 
     // Add More Course Dropdown functionality
     const addCourseBtn = document.getElementById('addCourseDropdown');
@@ -56,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (e.ctrlKey && e.key === 'n') {
             e.preventDefault();
-            // Try to open modal via common helper if available
             if (typeof showAddModal === 'function') {
                 showAddModal('addStudentModal', 'addStudentForm');
             } else {
@@ -72,7 +73,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateSelectionUI() {
         const any = !!document.querySelectorAll('#students-table tbody .row-select:checked').length;
         if (headerDeleteBtn) {
-            // Hide the header delete button until a selection exists
             headerDeleteBtn.style.display = any ? '' : 'none';
             headerDeleteBtn.disabled = false;
         }
@@ -94,7 +94,69 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     // initialize state (button visible, disabled if nothing selected)
     updateSelectionUI();
-});
+
+    // Ensure modal selects (branches / courses) are populated when modal opens
+    async function populateStudentModalOptions(forceReload = false) {
+        try {
+            if (!forceReload && window._cachedBranches && window._cachedCourses) return;
+            const [branchesRes, coursesRes] = await Promise.all([
+                fetchJson('api/branches.php?action=list'),
+                fetchJson('api/courses.php?action=list')
+            ]);
+            const branches = (branchesRes && branchesRes.success && Array.isArray(branchesRes.data)) ? branchesRes.data : [];
+            const courses = (coursesRes && coursesRes.success && Array.isArray(coursesRes.data)) ? coursesRes.data : [];
+            window._cachedBranches = branches;
+            window._cachedCourses = courses;
+
+            // Populate branch select
+            const branchSel = document.getElementById('studentBranch');
+            if (branchSel) {
+                const cur = branchSel.value;
+                branchSel.innerHTML = '<option value="0">-- Select Branch --</option>' + branches.map(b => `<option value="${b.id}">${escapeHtml(b.name || b.title || b.branch_name || b.label || '')}</option>`).join('');
+                if (cur) branchSel.value = cur;
+            }
+
+            // Populate course selects template(s)
+            const coursesDiv = document.getElementById('courses-dynamic');
+            if (coursesDiv) {
+                // For each select[name="courses[]"] update options
+                const selects = coursesDiv.querySelectorAll('select[name="courses[]"]');
+                selects.forEach(sel => {
+                    const prev = sel.value;
+                    sel.innerHTML = '<option value="">-- Select Course --</option>' + courses.map(c => `<option value="${c.id}">${escapeHtml(c.title || c.name || c.course_name || '')}</option>`).join('');
+                    if (prev) sel.value = prev;
+                });
+            }
+        } catch (err) {
+            console.error('populateStudentModalOptions failed', err);
+        }
+    }
+
+    // Utility escape helper to avoid HTML injection in option text
+    function escapeHtml(str) {
+        return String(str || '').replace(/[&<>\"']/g, function (m) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]; });
+    }
+
+    // Populate once now (so template rows have options)
+    try { populateStudentModalOptions(); } catch(e){/* ignore */}
+
+    // Also populate on modal show in case cache needs refreshing
+    const studentModalEl = document.getElementById('addStudentModal');
+    if (studentModalEl) {
+        studentModalEl.addEventListener('show.bs.modal', function(e){
+            populateStudentModalOptions(false);
+        });
+    }
+}
+
+// Expose initializer for AJAX loader and call appropriately
+window.initStudents = initStudents;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStudents);
+} else {
+    // Document already ready — initialize immediately
+    try { initStudents(); } catch(e) { console.error('initStudents immediate call failed', e); }
+}
 
 // Export to Excel
 function exportToExcel() {

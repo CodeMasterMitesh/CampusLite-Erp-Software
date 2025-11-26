@@ -36,6 +36,37 @@ function showAddModal(modalId, formId, opts = {}) {
 
 // Utility: fetch JSON safe
 async function fetchJson(url, opts) {
+    const defaultOpts = { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } };
+    opts = opts || {};
+    // merge headers
+    opts.headers = Object.assign({}, defaultOpts.headers, opts.headers || {});
+    if (!opts.credentials) opts.credentials = defaultOpts.credentials;
+
     const res = await fetch(url, opts);
-    return res.json();
+    const text = await res.text();
+    // try parse JSON
+    let data = null;
+    try {
+        data = text ? JSON.parse(text) : null;
+    } catch (e) {
+        // not JSON
+        if (!res.ok) {
+            const err = new Error(text || res.statusText || 'Request failed');
+            err.status = res.status;
+            throw err;
+        }
+        return text;
+    }
+
+    if (!res.ok) {
+        const err = new Error((data && data.message) ? data.message : res.statusText || 'Request failed');
+        err.status = res.status;
+        err.data = data;
+        // If unauthorized or forbidden, redirect to login page to re-authenticate
+        if (err.status === 401 || err.status === 403) {
+            try { window.location.href = '/login.php'; } catch(e) {}
+        }
+        throw err;
+    }
+    return data;
 }

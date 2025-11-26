@@ -1,6 +1,6 @@
 // batch_assignments.js
-document.addEventListener('DOMContentLoaded', function(){
-    initAdvancedTable('#assignments-table');
+function initBatchAssignments(){
+    try { initAdvancedTable('#assignments-table'); } catch(e) { console.error('initBatchAssignments: initAdvancedTable failed', e); }
     const container = document.querySelector('.dashboard-container'); if (container) container.classList.add('show');
     const selectAll = document.getElementById('select-all-assignments');
     const headerDelete = document.getElementById('delete-selected-assignments-header');
@@ -28,7 +28,10 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }
     });
-});
+}
+
+window.initBatchAssignments = initBatchAssignments;
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBatchAssignments); else try { initBatchAssignments(); } catch(e) { console.error('initBatchAssignments immediate failed', e); }
 
 async function editAssignment(id){ if (window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer'); try{ const res = await CRUD.get(`api/batch_assignments.php?action=get&id=${encodeURIComponent(id)}`); if (res.success && res.data){ const a = res.data; document.getElementById('assignmentId').value = a.id || ''; document.getElementById('assignmentBatch').value = a.batch_id || 0; document.getElementById('assignmentUser').value = a.user_id || 0; document.querySelector('#addAssignmentForm [name="role"]').value = a.role || 'faculty'; if (a.assigned_at){ const dt = new Date(a.assigned_at); // format to local datetime-local
             const iso = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16);

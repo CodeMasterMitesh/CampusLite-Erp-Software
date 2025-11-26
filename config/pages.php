@@ -1,0 +1,26 @@
+<?php
+// config/pages.php - whitelist of page keys mapped to view files
+return [
+    'login' => __DIR__ . '/../app/views/login.php',
+    'dashboard' => __DIR__ . '/../app/views/dashboard.php',
+    'branches' => __DIR__ . '/../app/views/branches.php',
+    'users' => __DIR__ . '/../app/views/users.php',
+    'courses' => __DIR__ . '/../app/views/courses.php',
+    'subjects' => __DIR__ . '/../app/views/subjects.php',
+    'students' => __DIR__ . '/../app/views/students.php',
+    'faculty' => __DIR__ . '/../app/views/faculty.php',
+    'employee' => __DIR__ . '/../app/views/employee.php',
+    'batches' => __DIR__ . '/../app/views/batches.php',
+    'attendance' => __DIR__ . '/../app/views/attendance.php',
+    'attendance_students' => __DIR__ . '/../app/views/attendance_students.php',
+    'attendance_faculty' => __DIR__ . '/../app/views/attendance_faculty.php',
+    'attendance_employee' => __DIR__ . '/../app/views/attendance_employee.php',
+    'fees' => __DIR__ . '/../app/views/fees.php',
+    'salaries' => __DIR__ . '/../app/views/salaries.php',
+    'leaves' => __DIR__ . '/../app/views/leaves.php',
+    'settings' => __DIR__ . '/../app/views/settings.php',
+    'reports' => __DIR__ . '/../app/views/reports.php',
+    'company' => __DIR__ . '/../app/views/company.php',
+    'batch_assignments' => __DIR__ . '/../app/views/batch_assignments.php',
+    'logout' => __DIR__ . '/../app/views/logout.php',
+];

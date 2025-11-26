@@ -1,7 +1,7 @@
 // courses.js - centralised page logic for courses.php
-document.addEventListener('DOMContentLoaded', function() {
+function initCourses() {
     // Initialize DataTable with column filters
-    initAdvancedTable('#courses-table');
+    try { initAdvancedTable('#courses-table'); } catch(e) { console.error('initCourses: initAdvancedTable failed', e); }
 
     // page fade-in
     const container = document.querySelector('.dashboard-container');
@@ -30,7 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
+}
+
+window.initCourses = initCourses;
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCourses); else try { initCourses(); } catch(e) { console.error('initCourses immediate failed', e); }
 
 function showAddCourseModal() {
     // use shared helper to reset and show modal

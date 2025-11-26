@@ -1,76 +1,43 @@
 <?php
 // public/index.php
-session_start();
+require_once __DIR__ . '/config/session.php';
+start_secure_session();
 define('APP_INIT', true);
 require_once __DIR__ . '/config/db.php';
-// Simple router for demonstration
-// Simple router for demonstration
-$page = $_GET['page'] ?? 'login';
-switch ($page) {
-    case 'login':
-        require_once __DIR__ . '/app/views/login.php';
-        break;
-    case 'dashboard':
-        require_once __DIR__ . '/app/views/dashboard.php';
-        break;
-    case 'branches':
-        require_once __DIR__ . '/app/views/branches.php';
-        break;
-    case 'users':
-        require_once __DIR__ . '/app/views/users.php';
-        break;
-    case 'courses':
-        require_once __DIR__ . '/app/views/courses.php';
-        break;
-    case 'subjects':
-        require_once __DIR__ . '/app/views/subjects.php';
-        break;
-    case 'students':
-        require_once __DIR__ . '/app/views/students.php';
-        break;
-    case 'faculty':
-        require_once __DIR__ . '/app/views/faculty.php';
-        break;
-    case 'employee':
-        require_once __DIR__ . '/app/views/employee.php';
-        break;
-    case 'batches':
-        require_once __DIR__ . '/app/views/batches.php';
-        break;
-    case 'attendance':
-        require_once __DIR__ . '/app/views/attendance.php';
-        break;
-    case 'fees':
-        require_once __DIR__ . '/app/views/fees.php';
-        break;
-    case 'salaries':
-        require_once __DIR__ . '/app/views/salaries.php';
-        break;
-    case 'leaves':
-        require_once __DIR__ . '/app/views/leaves.php';
-        break;
-    case 'settings':
-        require_once __DIR__ . '/app/views/settings.php';
-        break;
-    case 'reports':
-        require_once __DIR__ . '/app/views/reports.php';
-        break;
-    case 'company':
-        require_once __DIR__ . '/app/views/company.php';
-        break;
-    case 'attendance_students':
-        require_once __DIR__ . '/app/views/attendance_students.php';
-        break;
-    case 'attendance_faculty':
-        require_once __DIR__ . '/app/views/attendance_faculty.php';
-        break;
-    case 'attendance_employee':
-        require_once __DIR__ . '/app/views/attendance_employee.php';
-        break;
-    case 'batch_assignments':
-        require_once __DIR__ . '/app/views/batch_assignments.php';
-        break;
-    default:
+
+// Load whitelist of pages
+$pages = [];
+$pagesFile = __DIR__ . '/config/pages.php';
+if (file_exists($pagesFile)) {
+    $pages = require $pagesFile;
+}
+
+// Determine requested page key
+// Default to dashboard so root `index.php` shows dashboard for authenticated users
+$page = $_GET['page'] ?? 'dashboard';
+
+// If user is not logged in, force login page (except login itself)
+// Accept multiple session keys for compatibility with existing code (user, user_id, udata)
+$isAuthenticated = false;
+if (!empty($_SESSION['user']['id']) || !empty($_SESSION['user_id']) || !empty($_SESSION['udata'])) {
+    $isAuthenticated = true;
+}
+if ($page !== 'login' && !$isAuthenticated) {
+    // redirect to standalone login page
+    header('Location: login.php');
+    exit;
+}
+
+// Serve page from whitelist
+if (isset($pages[$page]) && file_exists($pages[$page])) {
+    require_once $pages[$page];
+} else {
+    // fallback: show dashboard if available, else 404
+    if (isset($pages['dashboard']) && file_exists($pages['dashboard'])) {
+        require_once $pages['dashboard'];
+    } else {
+        http_response_code(404);
         echo 'Page not found.';
+    }
 }
 ?>

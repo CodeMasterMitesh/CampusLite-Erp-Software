@@ -7,6 +7,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../../public/assets/css/style.css">
+    <script>
+        // If a last AJAX page is stored, mark document to hide initial main content
+        // until nav-ajax replaces it. This avoids a flash of the default page on refresh.
+        try {
+            var __tuition_last = window.localStorage && window.localStorage.getItem && window.localStorage.getItem('lastPage');
+            if (__tuition_last) document.documentElement.classList.add('tuition-wait-lastpage');
+        } catch (e) {}
+    </script>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark">

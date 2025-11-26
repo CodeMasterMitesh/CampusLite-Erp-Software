@@ -1,7 +1,7 @@
 // batches.js - centralized logic for batches.php
-document.addEventListener('DOMContentLoaded', function() {
+function initBatches() {
     // Initialize DataTable with column filters
-    initAdvancedTable('#batches-table');
+    try { initAdvancedTable('#batches-table'); } catch(e) { console.error('initBatches: initAdvancedTable failed', e); }
 
     // page fade-in
     const container = document.querySelector('.dashboard-container'); if (container) container.classList.add('show');
@@ -27,7 +27,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.addEventListener('change', function(e){ if (e.target && e.target.classList && e.target.classList.contains('row-select')) updateSelectionUI(); });
     updateSelectionUI();
-});
+}
+
+window.initBatches = initBatches;
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBatches); else try { initBatches(); } catch(e) { console.error('initBatches immediate failed', e); }
 
 function showAddBatchModal() {
     if (typeof showAddModal === 'function') {

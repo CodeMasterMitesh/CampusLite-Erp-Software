@@ -8,17 +8,22 @@
     </div>
 </footer>
 
+<?php include __DIR__ . '/modals.php'; ?>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="../../../public/assets/js/export-print.js"></script>
-<script src="../../../public/assets/js/crud-helpers.js"></script>
-<script src="../../../public/assets/js/batch-actions.js"></script>
-<!-- DataTables (jQuery required) -->
+<!-- Load jQuery and DataTables before scripts that depend on them -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script src="../../../public/assets/js/export-print.js"></script>
+<script src="../../../public/assets/js/crud-helpers.js"></script>
+<script src="../../../public/assets/js/batch-actions.js"></script>
+
 <script src="../../../public/assets/js/common.js"></script>
+<script src="../../../public/assets/js/nav-ajax.js"></script>
 <script>
     // Add active class to current page in navbar
     document.addEventListener('DOMContentLoaded', function() {

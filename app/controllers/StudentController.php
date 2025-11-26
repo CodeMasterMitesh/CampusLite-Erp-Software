@@ -22,22 +22,43 @@ class StudentController {
         global $conn;
         // Insert student
         $stmt = mysqli_prepare($conn, "INSERT INTO students (branch_id, name, email, mobile, dob, education, college_name, father_name, address, pincode, state, city, area, registration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if (!$stmt) {
+            error_log('StudentController::create prepare failed: ' . mysqli_error($conn));
+            return false;
+        }
+        // local variables (bind_param requires variables passed by reference)
+        $branch_id = isset($data['branch_id']) ? intval($data['branch_id']) : 0;
+        $name = $data['name'] ?? '';
+        $email = $data['email'] ?? '';
+        $mobile = $data['mobile'] ?? '';
+        $dob = $data['dob'] ?? null;
+        $education = $data['education'] ?? '';
+        $college_name = $data['college_name'] ?? '';
+        $father_name = $data['father_name'] ?? '';
+        $address = $data['address'] ?? '';
+        $pincode = $data['pincode'] ?? '';
+        $state = $data['state'] ?? '';
+        $city = $data['city'] ?? '';
+        $area = $data['area'] ?? '';
         $registration_date = $data['registration_date'] ?? date('Y-m-d');
         $status = ($data['status'] === 'active' || $data['status'] == 1) ? 1 : 0;
-        mysqli_stmt_bind_param($stmt, 'issssssssssssssi',
-            $data['branch_id'],
-            $data['name'],
-            $data['email'],
-            $data['mobile'],
-            $data['dob'],
-            $data['education'],
-            $data['college_name'],
-            $data['father_name'],
-            $data['address'],
-            $data['pincode'],
-            $data['state'],
-            $data['city'],
-            $data['area'],
+
+        // bind: 15 params, types: i (branch), then 13 strings, then i (status)
+        $bindTypes = 'isssssssssssssi';
+        mysqli_stmt_bind_param($stmt, $bindTypes,
+            $branch_id,
+            $name,
+            $email,
+            $mobile,
+            $dob,
+            $education,
+            $college_name,
+            $father_name,
+            $address,
+            $pincode,
+            $state,
+            $city,
+            $area,
             $registration_date,
             $status
         );

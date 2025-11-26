@@ -1,7 +1,7 @@
 // subjects.js - centralised page logic for subjects.php
-document.addEventListener('DOMContentLoaded', function() {
+function initSubjects() {
     // init DataTable with filters
-    initAdvancedTable('#subjects-table');
+    try { initAdvancedTable('#subjects-table'); } catch(e) { console.error('initSubjects: initAdvancedTable failed', e); }
     // page fade-in
     const container = document.querySelector('.dashboard-container'); if (container) container.classList.add('show');
     // Selection handling for delete-selected
@@ -28,7 +28,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     // initialize hidden state
     updateSelectionUI();
-});
+}
+
+window.initSubjects = initSubjects;
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSubjects); else try { initSubjects(); } catch(e) { console.error('initSubjects immediate failed', e); }
 
 // Client-side search (if there's a search input with id=searchInput)
 (function(){

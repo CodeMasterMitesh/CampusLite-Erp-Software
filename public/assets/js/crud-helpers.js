@@ -112,6 +112,9 @@ window.CRUD = {
     // Simple inline validation attach: finds forms inside modals and prevents submission if invalid
     function attachInlineValidation(){
         document.querySelectorAll('form[id]').forEach(form => {
+            // avoid attaching twice
+            if (form.dataset.crudValidationAttached) return;
+            form.dataset.crudValidationAttached = '1';
             const modal = form.closest('.modal');
             if (!modal) return;
             form.addEventListener('submit', function(ev){
@@ -133,5 +136,8 @@ window.CRUD = {
         });
     }
 
-    document.addEventListener('DOMContentLoaded', attachInlineValidation);
+    // Expose initializer so nav-ajax or callers can re-run validation attachment
+    window.initCRUDHelpers = function(){ try { attachInlineValidation(); } catch(e) { console.error('initCRUDHelpers failed', e); } };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachInlineValidation); else attachInlineValidation();
 })();
