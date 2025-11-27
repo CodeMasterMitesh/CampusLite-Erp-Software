@@ -5,12 +5,18 @@ require_once __DIR__ . '/../../config/db.php';
 class CourseController {
     public static function getAll($branch_id = null) {
         global $conn;
-        $sql = "SELECT * FROM courses";
-        if ($branch_id) {
-            $sql .= " WHERE branch_id = " . intval($branch_id);
-        }
-        $result = mysqli_query($conn, $sql);
         $courses = [];
+        if ($branch_id) {
+            $stmt = mysqli_prepare($conn, "SELECT * FROM courses WHERE branch_id = ?");
+            $bid = intval($branch_id);
+            mysqli_stmt_bind_param($stmt, 'i', $bid);
+            if (mysqli_stmt_execute($stmt)) {
+                $res = mysqli_stmt_get_result($stmt);
+                while ($row = mysqli_fetch_assoc($res)) $courses[] = $row;
+            }
+            return $courses;
+        }
+        $result = mysqli_query($conn, "SELECT * FROM courses");
         while ($row = mysqli_fetch_assoc($result)) {
             $courses[] = $row;
         }

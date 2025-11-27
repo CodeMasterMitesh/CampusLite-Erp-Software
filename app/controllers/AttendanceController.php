@@ -6,15 +6,38 @@ class AttendanceController {
     // $entity_type can be 'student', 'faculty', 'employee' or null for all
     public static function getAll($entity_type = null, $branch_id = null) {
         global $conn;
-        $sql = "SELECT * FROM attendance WHERE 1=1";
+        $rows = [];
+        // Use prepared statements when filters are provided
+        if ($entity_type && $branch_id) {
+            $stmt = mysqli_prepare($conn, "SELECT * FROM attendance WHERE entity_type = ? AND branch_id = ?");
+            $bid = intval($branch_id);
+            mysqli_stmt_bind_param($stmt, 'si', $entity_type, $bid);
+            if (mysqli_stmt_execute($stmt)) {
+                $res = mysqli_stmt_get_result($stmt);
+                while ($r = mysqli_fetch_assoc($res)) $rows[] = $r;
+            }
+            return $rows;
+        }
         if ($entity_type) {
-            $sql .= " AND entity_type = '" . mysqli_real_escape_string($conn, $entity_type) . "'";
+            $stmt = mysqli_prepare($conn, "SELECT * FROM attendance WHERE entity_type = ?");
+            mysqli_stmt_bind_param($stmt, 's', $entity_type);
+            if (mysqli_stmt_execute($stmt)) {
+                $res = mysqli_stmt_get_result($stmt);
+                while ($r = mysqli_fetch_assoc($res)) $rows[] = $r;
+            }
+            return $rows;
         }
         if ($branch_id) {
-            $sql .= " AND branch_id = " . intval($branch_id);
+            $stmt = mysqli_prepare($conn, "SELECT * FROM attendance WHERE branch_id = ?");
+            $bid = intval($branch_id);
+            mysqli_stmt_bind_param($stmt, 'i', $bid);
+            if (mysqli_stmt_execute($stmt)) {
+                $res = mysqli_stmt_get_result($stmt);
+                while ($r = mysqli_fetch_assoc($res)) $rows[] = $r;
+            }
+            return $rows;
         }
-        $res = mysqli_query($conn, $sql);
-        $rows = [];
+        $res = mysqli_query($conn, "SELECT * FROM attendance");
         while ($r = mysqli_fetch_assoc($res)) $rows[] = $r;
         return $rows;
     }
@@ -27,7 +50,9 @@ class AttendanceController {
     public static function delete($id) {
         global $conn;
         $id = intval($id);
-        return mysqli_query($conn, "DELETE FROM attendance WHERE id = $id");
+        $stmt = mysqli_prepare($conn, "DELETE FROM attendance WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, 'i', $id);
+        return mysqli_stmt_execute($stmt);
     }
 }
 ?>

@@ -34,6 +34,32 @@ function showAddModal(modalId, formId, opts = {}) {
     if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
 
+// Declarative modal opener: listens for elements with data-modal-target
+(function attachDeclarativeModalHandler(){
+    function handleClick(e) {
+        const el = e.target.closest && e.target.closest('[data-modal-target]');
+        if (!el) return;
+        const modalId = el.getAttribute('data-modal-target');
+        const formId = el.getAttribute('data-modal-form') || null;
+        if (modalId) {
+            e.preventDefault();
+            try { showAddModal(modalId, formId); } catch(err) { console.error('showAddModal failed', err); }
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ document.body.addEventListener('click', handleClick); });
+    else document.body.addEventListener('click', handleClick);
+})();
+
+// Global refresh helper: clears cached lists and notifies listeners
+function refreshGlobalLists() {
+    try {
+        delete window._cachedBranches;
+        delete window._cachedCourses;
+        const ev = new CustomEvent('globalListsRefreshed');
+        window.dispatchEvent(ev);
+    } catch(e) { console.error('refreshGlobalLists failed', e); }
+}
+
 // Utility: fetch JSON safe
 async function fetchJson(url, opts) {
     const defaultOpts = { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } };

@@ -67,9 +67,12 @@ class StudentController {
             $student_id = mysqli_insert_id($conn);
             // Handle course mapping
             if (!empty($data['courses']) && is_array($data['courses'])) {
+                $insStmt = mysqli_prepare($conn, "INSERT INTO student_courses (student_id, course_id) VALUES (?, ?)");
                 foreach ($data['courses'] as $course_id) {
                     $course_id = intval($course_id);
-                    mysqli_query($conn, "INSERT INTO student_courses (student_id, course_id) VALUES ($student_id, $course_id)");
+                    if ($course_id <= 0) continue;
+                    mysqli_stmt_bind_param($insStmt, 'ii', $student_id, $course_id);
+                    mysqli_stmt_execute($insStmt);
                 }
             }
         }
@@ -98,11 +101,16 @@ class StudentController {
         $ok = mysqli_stmt_execute($stmt);
         if ($ok) {
             // Update course mapping: remove old, insert new
-            mysqli_query($conn, "DELETE FROM student_courses WHERE student_id = $id");
+            $delStmt = mysqli_prepare($conn, "DELETE FROM student_courses WHERE student_id = ?");
+            mysqli_stmt_bind_param($delStmt, 'i', $id);
+            mysqli_stmt_execute($delStmt);
             if (!empty($data['courses']) && is_array($data['courses'])) {
+                $insStmt = mysqli_prepare($conn, "INSERT INTO student_courses (student_id, course_id) VALUES (?, ?)");
                 foreach ($data['courses'] as $course_id) {
                     $course_id = intval($course_id);
-                    mysqli_query($conn, "INSERT INTO student_courses (student_id, course_id) VALUES ($id, $course_id)");
+                    if ($course_id <= 0) continue;
+                    mysqli_stmt_bind_param($insStmt, 'ii', $id, $course_id);
+                    mysqli_stmt_execute($insStmt);
                 }
             }
         }
@@ -111,7 +119,9 @@ class StudentController {
     public static function delete($id) {
         global $conn;
         $id = intval($id);
-        return mysqli_query($conn, "DELETE FROM students WHERE id = $id");
+        $stmt = mysqli_prepare($conn, "DELETE FROM students WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, 'i', $id);
+        return mysqli_stmt_execute($stmt);
     }
 }
 ?>

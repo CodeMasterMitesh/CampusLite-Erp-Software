@@ -17,8 +17,10 @@ try {
         case 'delete':
             require_once __DIR__ . '/../config/db.php';
             $id = intval($_POST['id'] ?? 0);
-            $res = mysqli_query($conn, "DELETE FROM branches WHERE id = $id");
-            if ($res) send_json(true, 'Branch deleted'); else send_json(false, 'Failed to delete branch');
+            $stmt = mysqli_prepare($conn, "DELETE FROM branches WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, 'i', $id);
+            $res = mysqli_stmt_execute($stmt);
+            if ($res && mysqli_stmt_affected_rows($stmt) > 0) send_json(true, 'Branch deleted'); else send_json(false, 'Failed to delete branch');
             break;
         default:
             send_json(false, 'Unknown action');

@@ -25,7 +25,7 @@ foreach ($branches as $b) {
 }
 ?>
 <?php include __DIR__ . '/partials/nav.php'; ?>
-<div class="dashboard-container" style="width:100%;max-width:none;padding-left:16px;padding-right:16px;">
+<div class="dashboard-container" style="width:100%;max-width:none;">
         <!-- Dashboard header and controls removed for minimal look -->
 
         <div class="row">

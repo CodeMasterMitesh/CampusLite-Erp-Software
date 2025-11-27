@@ -137,16 +137,24 @@ function initStudents() {
         return String(str || '').replace(/[&<>\"']/g, function (m) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]; });
     }
 
+    // Expose and call populate function so other modules can refresh lists
+    window.populateStudentModalOptions = populateStudentModalOptions;
+
     // Populate once now (so template rows have options)
-    try { populateStudentModalOptions(); } catch(e){/* ignore */}
+    try { window.populateStudentModalOptions(); } catch(e){/* ignore */}
 
     // Also populate on modal show in case cache needs refreshing
     const studentModalEl = document.getElementById('addStudentModal');
     if (studentModalEl) {
         studentModalEl.addEventListener('show.bs.modal', function(e){
-            populateStudentModalOptions(false);
+            window.populateStudentModalOptions(false);
         });
     }
+
+    // Listen for global refresh events
+    window.addEventListener('globalListsRefreshed', function() {
+        try { window.populateStudentModalOptions(true); } catch(e) { console.error('globalListsRefreshed handler failed', e); }
+    });
 }
 
 // Expose initializer for AJAX loader and call appropriately

@@ -37,7 +37,8 @@ foreach ($branches as $b) {
         ['label' => 'Export Excel', 'class' => 'btn-primary', 'onclick' => 'exportToExcel()', 'icon' => 'fas fa-file-excel'],
         ['id' => 'delete-selected-students-header', 'label' => 'Delete Selected', 'class' => 'btn-danger', 'onclick' => "deleteSelectedStudents()", 'icon' => 'fas fa-trash'],
     ];
-    $add_button = ['label' => 'Add New Student', 'onclick' => "showAddModal('addStudentModal','addStudentForm')"];
+    // Use declarative modal attributes so nav-ajax and common handlers can manage it
+    $add_button = ['label' => 'Add New Student', 'modal' => 'addStudentModal', 'form' => 'addStudentForm'];
     include __DIR__ . '/partials/page-header.php';
     ?>
     <!-- Table Container -->
@@ -160,4 +161,4 @@ foreach ($branches as $b) {
 <!-- Student modal moved to shared partial (partials/modals.php) -->
 <?php // branch/course options will be populated by page init when the shared modal is shown ?>
 <?php include __DIR__ . '/partials/footer.php'; ?>
-<script src="../../../public/assets/js/students.js"></script>
+<script src="/public/assets/js/students.js"></script>

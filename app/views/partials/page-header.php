@@ -27,7 +27,20 @@ $add_button = $add_button ?? null;
             </div>
         <?php endif; ?>
         <?php if ($add_button): ?>
-            <button class="btn btn-primary btn-action" onclick="<?= $add_button['onclick'] ?>">
+            <?php
+                // Prefer declarative data attributes for modal wiring.
+                // If developer passed 'modal' and optional 'form' use them.
+                $btnAttrs = [];
+                if (!empty($add_button['modal'])) {
+                    $btnAttrs['data-modal-target'] = $add_button['modal'];
+                    if (!empty($add_button['form'])) $btnAttrs['data-modal-form'] = $add_button['form'];
+                } elseif (!empty($add_button['onclick']) && preg_match("/showAddModal\(['\"]([^'\"]+)['\"],?\s*['\"]?([^'\"]*)['\"]?\)/", $add_button['onclick'], $m)) {
+                    // Extract modalId and formId from old onclick and render data attributes instead
+                    $btnAttrs['data-modal-target'] = $m[1];
+                    if (!empty($m[2])) $btnAttrs['data-modal-form'] = $m[2];
+                }
+            ?>
+            <button class="btn btn-primary btn-action" <?= implode(' ', array_map(function($k) use ($btnAttrs){ return $k . '="' . htmlspecialchars($btnAttrs[$k]) . '"'; }, array_keys($btnAttrs))) ?> <?php if (empty($btnAttrs)) echo 'onclick="' . ($add_button['onclick'] ?? '') . '"'; ?> >
                 <i class="fas fa-plus"></i> <?= htmlspecialchars($add_button['label']) ?>
             </button>
         <?php endif; ?>

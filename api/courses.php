@@ -14,8 +14,12 @@ try {
             $id = intval($_GET['id'] ?? 0);
             require_once __DIR__ . '/../config/db.php';
             $subjects = [];
-            $res = mysqli_query($conn, "SELECT subject_id FROM course_subjects WHERE course_id = $id ORDER BY sequence, id");
-            while ($row = mysqli_fetch_assoc($res)) $subjects[] = $row;
+            $stmt = mysqli_prepare($conn, "SELECT subject_id FROM course_subjects WHERE course_id = ? ORDER BY sequence, id");
+            mysqli_stmt_bind_param($stmt, 'i', $id);
+            if (mysqli_stmt_execute($stmt)) {
+                $res = mysqli_stmt_get_result($stmt);
+                while ($row = mysqli_fetch_assoc($res)) $subjects[] = $row;
+            }
             echo json_encode(['success'=>true,'data'=>$subjects]);
             break;
         case 'create':
@@ -46,14 +50,18 @@ try {
             if (!is_array($subjects)) {
                 $subjects = [$subjects];
             }
-            // Remove old mappings
-            mysqli_query($conn, "DELETE FROM course_subjects WHERE course_id = $id");
-            // Insert new mappings
+            // Remove old mappings (prepared)
+            $delStmt = mysqli_prepare($conn, "DELETE FROM course_subjects WHERE course_id = ?");
+            mysqli_stmt_bind_param($delStmt, 'i', $id);
+            mysqli_stmt_execute($delStmt);
+            // Insert new mappings (prepared)
+            $insStmt = mysqli_prepare($conn, "INSERT INTO course_subjects (course_id, subject_id, sequence) VALUES (?, ?, ?)");
             $seq = 1;
             foreach ($subjects as $subj_id) {
                 $subj_id = intval($subj_id);
                 if ($subj_id > 0) {
-                    mysqli_query($conn, "INSERT INTO course_subjects (course_id, subject_id, sequence) VALUES ($id, $subj_id, $seq)");
+                    mysqli_stmt_bind_param($insStmt, 'iii', $id, $subj_id, $seq);
+                    mysqli_stmt_execute($insStmt);
                     $seq++;
                 }
             }
@@ -63,7 +71,9 @@ try {
         case 'delete':
             require_once __DIR__ . '/../config/db.php';
             $id = intval($_POST['id'] ?? 0);
-            $res = mysqli_query($conn, "DELETE FROM courses WHERE id = $id");
+            $stmt = mysqli_prepare($conn, "DELETE FROM courses WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, 'i', $id);
+            $res = mysqli_stmt_execute($stmt);
             echo json_encode(['success'=>(bool)$res]);
             break;
         default:

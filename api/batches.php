@@ -13,8 +13,13 @@ try {
             break;
         case 'get':
             $id = intval($_GET['id'] ?? 0);
-            $res = mysqli_query($conn, "SELECT * FROM batches WHERE id = $id LIMIT 1");
-            $row = mysqli_fetch_assoc($res);
+            $stmt = mysqli_prepare($conn, "SELECT * FROM batches WHERE id = ? LIMIT 1");
+            mysqli_stmt_bind_param($stmt, 'i', $id);
+            $row = null;
+            if (mysqli_stmt_execute($stmt)) {
+                $res = mysqli_stmt_get_result($stmt);
+                $row = mysqli_fetch_assoc($res);
+            }
             echo json_encode(['success'=>(bool)$row,'data'=>$row]);
             break;
         case 'create':
@@ -51,7 +56,9 @@ try {
             break;
         case 'delete':
             $id = intval($_POST['id'] ?? 0);
-            $res = mysqli_query($conn, "DELETE FROM batches WHERE id = $id");
+            $stmt = mysqli_prepare($conn, "DELETE FROM batches WHERE id = ?");
+            mysqli_stmt_bind_param($stmt, 'i', $id);
+            $res = mysqli_stmt_execute($stmt);
             echo json_encode(['success'=>(bool)$res]);
             break;
         default:
