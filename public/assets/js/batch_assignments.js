@@ -31,7 +31,7 @@ function initBatchAssignments(){
 }
 
 // populate subjects when a batch is selected
-document.addEventListener('DOMContentLoaded', function(){
+function initBatchSubjects() {
     try {
         const batchSelect = document.getElementById('assignmentBatch');
         const subjectsSelect = document.getElementById('assignmentSubjects');
@@ -46,22 +46,29 @@ document.addEventListener('DOMContentLoaded', function(){
                 try {
                     const res = await fetch(`api/courses.php?action=get_subjects&id=${encodeURIComponent(courseId)}`, {credentials: 'same-origin'});
                     const json = await res.json();
-                    const ids = Array.isArray(json.data) ? json.data.map(r => r.subject_id || r.id || r) : [];
-                    ids.forEach(id => {
-                        const title = SUBJECT_MAP[id] || (`Subject ${id}`);
+                    const rows = Array.isArray(json.data) ? json.data : [];
+                    rows.forEach(r => {
+                        const id = r.subject_id || r.id || r;
+                        const title = r.title || SUBJECT_MAP[id] || (`Subject ${id}`);
                         const opt = document.createElement('option'); opt.value = id; opt.textContent = title; subjectsSelect.appendChild(opt);
                     });
                 } catch(e) { console.warn('Failed to load course subjects', e); }
             });
         }
     } catch(e){ console.warn('subjects init failed', e); }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBatchSubjects);
+} else {
+    try { initBatchSubjects(); } catch(e) { console.warn('initBatchSubjects immediate failed', e); }
+}
 
 // Student add-more + autocomplete
 function createStudentRow(initial) {
     const wrapper = document.createElement('div'); wrapper.className = 'd-flex gap-2 mb-2 align-items-center student-row';
     const input = document.createElement('input'); input.type = 'text'; input.className = 'form-control student-search'; input.placeholder = 'Search student by name, email or phone';
-    const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.name = 'user_ids[]'; hidden.className = 'student-id';
+    const hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.name = 'students_ids[]'; hidden.className = 'student-id';
     const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-outline-danger'; removeBtn.innerHTML='<i class="fas fa-trash"></i>';
     const suggestions = document.createElement('div'); suggestions.className='autocomplete-suggestions border bg-white position-absolute'; suggestions.style.zIndex = 1055; suggestions.style.display='none'; suggestions.style.maxHeight='200px'; suggestions.style.overflow='auto'; suggestions.style.minWidth='240px';
 
@@ -104,16 +111,22 @@ function createStudentRow(initial) {
     return wrapper;
 }
 
-document.addEventListener('DOMContentLoaded', function(){
+function initStudentRows() {
     try {
         const container = document.getElementById('assignmentStudentsContainer');
         const addBtn = document.getElementById('addStudentRowBtn');
         if (!container || !addBtn) return;
-        // add one empty row by default
-        container.appendChild(createStudentRow());
+        // add one empty row by default if none
+        if (!container.querySelector('.student-row')) container.appendChild(createStudentRow());
         addBtn.addEventListener('click', function(){ container.appendChild(createStudentRow()); });
     } catch(e){ console.warn('student rows init failed', e); }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStudentRows);
+} else {
+    try { initStudentRows(); } catch(e) { console.warn('initStudentRows immediate failed', e); }
+}
 
 window.initBatchAssignments = initBatchAssignments;
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBatchAssignments); else try { initBatchAssignments(); } catch(e) { console.error('initBatchAssignments immediate failed', e); }
@@ -122,28 +135,48 @@ async function editAssignment(id){ if (window.CRUD && CRUD.showLoading) CRUD.sho
             const iso = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
             document.getElementById('assignmentAt').value = iso;
         } else document.getElementById('assignmentAt').value = '';
-        // trigger batch change to populate subjects, then set subjects and student selections
+            // trigger batch change to populate subjects, then set subjects and student selections
         const batchEl = document.getElementById('assignmentBatch');
         const subjectsEl = document.getElementById('assignmentSubjects');
-        const studentsEl = document.getElementById('assignmentStudents');
+        const studentsContainer = document.getElementById('assignmentStudentsContainer');
         if (batchEl) {
             // set value then dispatch change so subjects populate
             batchEl.value = a.batch_id || 0;
             batchEl.dispatchEvent(new Event('change'));
-            setTimeout(function(){
+            setTimeout(async function(){
                 try {
                     // set subjects if provided
                     if (Array.isArray(a.subjects) && subjectsEl) {
                         Array.from(subjectsEl.options).forEach(opt => { opt.selected = a.subjects.indexOf(opt.value) !== -1 || a.subjects.indexOf(parseInt(opt.value)) !== -1; });
                     }
-                    // if role is student and we have a user_id that could be a single student, select it
-                    if (a.role === 'student' && studentsEl) {
-                        // if backend stored multiple students, it would come via separate rows; select the user_id if present
-                        Array.from(studentsEl.options).forEach(opt => { opt.selected = (parseInt(opt.value) === parseInt(a.user_id)); });
+                    // populate student rows if there are students_ids stored (regardless of role)
+                    const sids = Array.isArray(a.students_ids) ? a.students_ids : (Array.isArray(a.user_ids) ? a.user_ids : (a.students_ids ? [a.students_ids] : []));
+                    if (sids && sids.length && studentsContainer) {
+                        // clear existing rows
+                        studentsContainer.querySelectorAll('.student-row').forEach(n => n.remove());
+                        for (const sid of sids) {
+                            try {
+                                // prefer injected student map to avoid extra requests
+                                let studentData = null;
+                                try { if (window.__studentMap && window.__studentMap[sid]) studentData = { id: sid, name: window.__studentMap[sid] }; } catch(e){}
+                                if (!studentData) {
+                                    const sres = await fetch(`api/students.php?action=get&id=${encodeURIComponent(sid)}`, {credentials: 'same-origin'});
+                                    const sj = await sres.json();
+                                    if (sj && sj.success && sj.data) studentData = sj.data; else if (sj && sj.id) studentData = sj;
+                                }
+                                const row = createStudentRow(studentData || { id: sid, name: '' });
+                                studentsContainer.appendChild(row);
+                            } catch(e) { console.warn('failed to load student for edit', e); }
+                        }
                     }
                 } catch(e) { console.warn('failed to set subjects/students in editAssignment', e); }
             }, 300);
         }
+        // set modal to Edit mode labels
+        try {
+            const titleEl = document.getElementById('assignmentModalTitle'); if (titleEl) titleEl.textContent = 'Edit Assignment';
+            const saveBtn = document.getElementById('assignmentSaveBtn'); if (saveBtn) saveBtn.textContent = 'Update';
+        } catch(e) { /* ignore */ }
         bootstrap.Modal.getOrCreateInstance(document.getElementById('addAssignmentModal')).show(); } else CRUD.toastError && CRUD.toastError('Not found'); }catch(e){ CRUD.toastError && CRUD.toastError('Failed: '+e.message);} finally{ CRUD.hideLoading && CRUD.hideLoading(); } }
 
 async function saveAssignment(){ const form = document.getElementById('addAssignmentForm'); const params = new FormData(form); const id = params.get('id'); const action = id ? 'update' : 'create'; try{ const res = await CRUD.post('api/batch_assignments.php?action='+action, params); if (res.success){ bootstrap.Modal.getOrCreateInstance(document.getElementById('addAssignmentModal')).hide(); CRUD.toastSuccess && CRUD.toastSuccess('Saved'); setTimeout(()=>location.reload(),600); } else CRUD.toastError && CRUD.toastError('Save failed'); }catch(e){ CRUD.toastError && CRUD.toastError('Request failed: '+e.message); } }

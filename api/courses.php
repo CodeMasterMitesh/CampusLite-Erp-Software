@@ -14,7 +14,7 @@ try {
             $id = intval($_GET['id'] ?? 0);
             require_once __DIR__ . '/../config/db.php';
             $subjects = [];
-            $stmt = mysqli_prepare($conn, "SELECT subject_id FROM course_subjects WHERE course_id = ? ORDER BY sequence, id");
+            $stmt = mysqli_prepare($conn, "SELECT cs.subject_id, s.title FROM course_subjects cs LEFT JOIN subjects s ON cs.subject_id = s.id WHERE cs.course_id = ? ORDER BY cs.sequence, cs.id");
             mysqli_stmt_bind_param($stmt, 'i', $id);
             if (mysqli_stmt_execute($stmt)) {
                 $res = mysqli_stmt_get_result($stmt);

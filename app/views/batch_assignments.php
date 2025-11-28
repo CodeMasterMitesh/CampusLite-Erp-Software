@@ -74,7 +74,26 @@ $subjectMap = []; foreach ($subjects as $s) $subjectMap[$s['id']] = $s['title'] 
                             <td class="text-center" data-label="Select"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($a['id']) ?>"></td>
                             <td data-label="ID"><?= htmlspecialchars($a['id']) ?></td>
                             <td data-label="Batch"><?= htmlspecialchars($batchMap[$a['batch_id']] ?? ('#'.$a['batch_id'])) ?></td>
-                            <td data-label="User"><?= htmlspecialchars($userMap[$a['user_id']] ?? ('#'.$a['user_id'])) ?></td>
+                            <td data-label="User">
+                                <?php
+                                    $uids = [];
+                                    if (!empty($a['students_ids'])) {
+                                        // if it's stored as JSON string in DB, try decode
+                                        if (is_string($a['students_ids'])) {
+                                            $decoded = json_decode($a['students_ids'], true);
+                                            if (is_array($decoded)) $uids = $decoded; else $uids = [$a['students_ids']];
+                                        } elseif (is_array($a['students_ids'])) $uids = $a['students_ids'];
+                                    } elseif (!empty($a['user_id'])) {
+                                        // fallback: treat user_id as a single student or faculty id
+                                        $uids = [$a['user_id']];
+                                    }
+                                    $names = [];
+                                    foreach ($uids as $uid) {
+                                        $names[] = htmlspecialchars($userMap[$uid] ?? $studentMap[$uid] ?? ('#'.$uid));
+                                    }
+                                    echo implode(', ', $names);
+                                ?>
+                            </td>
                             <td data-label="Role"><?= htmlspecialchars(ucfirst($a['role'] ?? '')) ?></td>
                             <td data-label="Assigned At"><?= htmlspecialchars($a['assigned_at'] ?? '') ?></td>
                             <td>
@@ -93,28 +112,40 @@ $subjectMap = []; foreach ($subjects as $s) $subjectMap[$s['id']] = $s['title'] 
 
 <!-- Add/Edit Modal -->
 <div class="modal fade" id="addAssignmentModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white"><h5 class="modal-title">Add Assignment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header bg-primary text-white"><h5 class="modal-title" id="assignmentModalTitle">Add Assignment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <form id="addAssignmentForm">
                     <input type="hidden" name="id" id="assignmentId" value="">
-                    <div class="mb-2"><label class="form-label">Batch</label>
-                        <select class="form-control" name="batch_id" id="assignmentBatch" required>
-                            <option value="0">-- Select Batch --</option>
-                            <?php foreach ($batches as $b): ?>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Batch</label>
+                            <select class="form-control" name="batch_id" id="assignmentBatch" required>
+                                <option value="0">-- Select Batch --</option>
+                                <?php foreach ($batches as $b): ?>
                                     <option value="<?= intval($b['id']) ?>" data-course="<?= intval($b['course_id'] ?? 0) ?>"><?= htmlspecialchars($b['title'] ?? $b['name'] ?? ('Batch '.$b['id'])) ?></option>
                                 <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-2"><label class="form-label">User</label>
-                        <select class="form-control" name="user_id" id="assignmentUser">
-                            <option value="0">-- Select User (for faculty/employee) --</option>
-                            <?php foreach ($users as $u): ?>
-                                <option value="<?= intval($u['id']) ?>"><?= htmlspecialchars($u['name'] ?? $u['email'] ?? ('User '.$u['id'])) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <small class="text-muted">Or select multiple <strong>students</strong> below to enroll them into the batch.</small>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">User</label>
+                            <select class="form-control" name="user_id" id="assignmentUser">
+                                <option value="0">-- Select User (for faculty/employee) --</option>
+                                <?php foreach ($users as $u): ?>
+                                    <option value="<?= intval($u['id']) ?>"><?= htmlspecialchars($u['name'] ?? $u['email'] ?? ('User '.$u['id'])) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-muted">Or select multiple <strong>students</strong> below to enroll them into the batch.</small>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Role</label>
+                            <select class="form-control" name="role" id="assignmentRole">
+                                <option value="faculty">Faculty</option>
+                                <option value="employee">Employee</option>
+                                <option value="student">Student</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="mb-2"><label class="form-label">Students</label>
                         <div id="assignmentStudentsContainer">
@@ -122,26 +153,20 @@ $subjectMap = []; foreach ($subjects as $s) $subjectMap[$s['id']] = $s['title'] 
                         </div>
                         <div class="mt-2">
                             <button type="button" id="addStudentRowBtn" class="btn btn-sm btn-outline-primary">Add Student</button>
-                            <small class="text-muted ms-2">Search & add multiple students. Each added student will be submitted as <code>user_ids[]</code>.</small>
+                            <small class="text-muted ms-2">Search & add multiple students. Each added student will be submitted as <code>students_ids[]</code>.</small>
                         </div>
                     </div>
                     <div class="mb-2"><label class="form-label">Subjects (from selected batch's course)</label>
                         <select class="form-control" name="subjects[]" id="assignmentSubjects" multiple size="6"></select>
                         <small class="text-muted">Select subjects that apply to this assignment (optional).</small>
                     </div>
-                    <div class="mb-2"><label class="form-label">Role</label>
-                        <select class="form-control" name="role">
-                            <option value="faculty">Faculty</option>
-                            <option value="employee">Employee</option>
-                            <option value="student">Student</option>
-                        </select>
-                    </div>
+                    
                     <div class="mb-2"><label class="form-label">Assigned At</label>
                         <input type="datetime-local" class="form-control" name="assigned_at" id="assignmentAt">
                     </div>
                 </form>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="saveAssignment()">Save</button></div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button id="assignmentSaveBtn" class="btn btn-primary" onclick="saveAssignment()">Save</button></div>
         </div>
     </div>
 </div>
@@ -150,5 +175,7 @@ $subjectMap = []; foreach ($subjects as $s) $subjectMap[$s['id']] = $s['title'] 
 <script>
 // inject subject map for client-side lookup
 window.__subjectMap = <?= json_encode($subjectMap ?? []) ?>;
+// inject student map for client-side lookup (id -> name)
+window.__studentMap = <?= json_encode($studentMap ?? []) ?>;
 </script>
 <script src="../../../public/assets/js/batch_assignments.js"></script>

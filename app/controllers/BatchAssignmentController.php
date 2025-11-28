@@ -8,7 +8,18 @@ class BatchAssignmentController {
         $sql = "SELECT * FROM batch_assignments ORDER BY assigned_at DESC";
         $res = mysqli_query($conn, $sql);
         $rows = [];
-        while ($r = mysqli_fetch_assoc($res)) $rows[] = $r;
+        while ($r = mysqli_fetch_assoc($res)) {
+            // decode JSON fields
+            if (isset($r['subjects']) && $r['subjects'] !== null) {
+                $decoded = json_decode($r['subjects'], true);
+                $r['subjects'] = is_array($decoded) ? $decoded : [];
+            } else { $r['subjects'] = []; }
+            if (isset($r['students_ids']) && $r['students_ids'] !== null) {
+                $decoded = json_decode($r['students_ids'], true);
+                $r['students_ids'] = is_array($decoded) ? $decoded : [];
+            } else { $r['students_ids'] = []; }
+            $rows[] = $r;
+        }
         return $rows;
     }
     public static function get($id) {
@@ -16,12 +27,15 @@ class BatchAssignmentController {
         $id = intval($id);
         $res = mysqli_query($conn, "SELECT * FROM batch_assignments WHERE id = $id LIMIT 1");
         $row = mysqli_fetch_assoc($res);
-        if ($row && isset($row['subjects']) && $row['subjects'] !== null) {
-            // ensure subjects parsed as array when returned to JSON
-            $decoded = json_decode($row['subjects'], true);
-            $row['subjects'] = is_array($decoded) ? $decoded : [];
-        } else {
-            $row['subjects'] = [];
+        if ($row) {
+            if (isset($row['subjects']) && $row['subjects'] !== null) {
+                $decoded = json_decode($row['subjects'], true);
+                $row['subjects'] = is_array($decoded) ? $decoded : [];
+            } else { $row['subjects'] = []; }
+            if (isset($row['students_ids']) && $row['students_ids'] !== null) {
+                $decoded = json_decode($row['students_ids'], true);
+                $row['students_ids'] = is_array($decoded) ? $decoded : [];
+            } else { $row['students_ids'] = []; }
         }
         return $row;
     }
@@ -31,8 +45,13 @@ class BatchAssignmentController {
         if (!empty($data['subjects'])) {
             if (is_array($data['subjects'])) $subjectsJson = json_encode(array_values($data['subjects'])); else $subjectsJson = json_encode([$data['subjects']]);
         }
-        $stmt = mysqli_prepare($conn, "INSERT INTO batch_assignments (batch_id, user_id, role, subjects, assigned_at) VALUES (?, ?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, 'iisss', $data['batch_id'], $data['user_id'], $data['role'], $subjectsJson, $data['assigned_at']);
+        $studentsIdsJson = null;
+        if (!empty($data['students_ids'])) {
+            if (is_array($data['students_ids'])) $studentsIdsJson = json_encode(array_values($data['students_ids'])); else $studentsIdsJson = json_encode([$data['students_ids']]);
+        }
+        $user_id = isset($data['user_id']) ? intval($data['user_id']) : 0;
+        $stmt = mysqli_prepare($conn, "INSERT INTO batch_assignments (batch_id, user_id, students_ids, role, subjects, assigned_at) VALUES (?, ?, ?, ?, ?, ?)");
+        mysqli_stmt_bind_param($stmt, 'iissss', $data['batch_id'], $user_id, $studentsIdsJson, $data['role'], $subjectsJson, $data['assigned_at']);
         return mysqli_stmt_execute($stmt);
     }
     public static function update($id, $data) {
@@ -41,8 +60,13 @@ class BatchAssignmentController {
         if (!empty($data['subjects'])) {
             if (is_array($data['subjects'])) $subjectsJson = json_encode(array_values($data['subjects'])); else $subjectsJson = json_encode([$data['subjects']]);
         }
-        $stmt = mysqli_prepare($conn, "UPDATE batch_assignments SET batch_id=?, user_id=?, role=?, subjects=?, assigned_at=? WHERE id=?");
-        mysqli_stmt_bind_param($stmt, 'iisssi', $data['batch_id'], $data['user_id'], $data['role'], $subjectsJson, $data['assigned_at'], $id);
+        $studentsIdsJson = null;
+        if (!empty($data['students_ids'])) {
+            if (is_array($data['students_ids'])) $studentsIdsJson = json_encode(array_values($data['students_ids'])); else $studentsIdsJson = json_encode([$data['students_ids']]);
+        }
+        $user_id = isset($data['user_id']) ? intval($data['user_id']) : 0;
+        $stmt = mysqli_prepare($conn, "UPDATE batch_assignments SET batch_id=?, user_id=?, students_ids=?, role=?, subjects=?, assigned_at=? WHERE id=?");
+        mysqli_stmt_bind_param($stmt, 'iissssi', $data['batch_id'], $user_id, $studentsIdsJson, $data['role'], $subjectsJson, $data['assigned_at'], $id);
         return mysqli_stmt_execute($stmt);
     }
     public static function delete($id) {

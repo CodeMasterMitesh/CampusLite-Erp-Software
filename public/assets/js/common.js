@@ -21,6 +21,13 @@ function initAdvancedTable(tableSelector) {
 function showAddModal(modalId, formId, opts = {}) {
     const form = document.getElementById(formId);
     if (form) form.reset();
+    // reset modal title and save button to defaults for Add mode
+    try {
+        const titleEl = document.getElementById('assignmentModalTitle');
+        if (titleEl) titleEl.textContent = opts.title || 'Add Assignment';
+        const saveBtn = document.getElementById('assignmentSaveBtn');
+        if (saveBtn) saveBtn.textContent = opts.saveLabel || 'Save';
+    } catch(e) { /* ignore if elements not present */ }
     // reset selects inside subjects-dynamic if exists
     const subjectsDiv = document.getElementById('subjects-dynamic');
     if (subjectsDiv) {
