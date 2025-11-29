@@ -1,0 +1,8 @@
+{
+    "name": "codemastermites/campuslite-erp-software",
+    "description": "CampusLite ERP Software",
+    "require": {
+        "php": ">=7.2",
+        "vlucas/phpdotenv": "^5.5"
+    }
+}
