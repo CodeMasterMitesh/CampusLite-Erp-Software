@@ -110,9 +110,9 @@
 
             <!-- Keep notifications and user profile outside the collapsing menu so they stay visible on small screens -->
             <div class="navbar-right d-flex align-items-center">
-                <ul class="navbar-nav mb-2 mb-lg-0 align-items-center">
+                <ul class="navbar-nav mb-2 mb-lg-0 align-items-center flex-row">
                     <!-- Notifications -->
-                    <li class="nav-item dropdown me-2">
+                    <li class="nav-item dropdown">
                         <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-bell"></i>
                             <span class="notification-badge">3</span>
@@ -135,7 +135,7 @@
                     <li class="nav-item dropdown user-dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <img src="https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff" alt="User" width="32" height="32" class="rounded-circle me-1">
-                            <span>Admin User</span>
+                            <span class="d-none d-lg-inline">Admin User</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>

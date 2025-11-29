@@ -9,19 +9,27 @@ $show_actions = $show_actions ?? true;
 $action_buttons = $action_buttons ?? [];
 $add_button = $add_button ?? null;
 ?>
-<div class="breadcrumb-container d-flex justify-content-between align-items-center">
-    <nav aria-label="breadcrumb">
+<div class="breadcrumb-container d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 gap-md-0">
+    <nav aria-label="breadcrumb" class="flex-grow-1">
         <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="index.php?page=dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page"><i class="<?= htmlspecialchars($icon) ?>"></i> <?= htmlspecialchars($title) ?></li>
+            <li class="breadcrumb-item"><a href="index.php?page=dashboard"><i class="fas fa-home"></i> <span class="d-none d-sm-inline">Dashboard</span></a></li>
+            <li class="breadcrumb-item active" aria-current="page"><i class="<?= htmlspecialchars($icon) ?>"></i> <span class="d-none d-sm-inline"><?= htmlspecialchars($title) ?></span><span class="d-sm-none"><?= htmlspecialchars(strlen($title) > 15 ? substr($title, 0, 15) . '...' : $title) ?></span></li>
         </ol>
     </nav>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
         <?php if ($show_actions): ?>
             <div class="action-buttons d-none d-md-flex">
                 <?php foreach ($action_buttons as $btn): ?>
                         <button <?php if (!empty($btn['id'])): ?>id="<?= htmlspecialchars($btn['id']) ?>"<?php endif; ?> class="btn <?= htmlspecialchars($btn['class'] ?? 'btn-primary') ?> btn-action" onclick="<?= $btn['onclick'] ?? '' ?>">
-                            <i class="<?= htmlspecialchars($btn['icon'] ?? 'fas fa-file') ?>"></i> <?= htmlspecialchars($btn['label'] ?? '') ?>
+                            <i class="<?= htmlspecialchars($btn['icon'] ?? 'fas fa-file') ?>"></i> <span class="d-none d-lg-inline"><?= htmlspecialchars($btn['label'] ?? '') ?></span>
+                        </button>
+                    <?php endforeach; ?>
+            </div>
+            <!-- Mobile action buttons -->
+            <div class="action-buttons d-flex d-md-none">
+                <?php foreach ($action_buttons as $btn): ?>
+                        <button <?php if (!empty($btn['id'])): ?>id="<?= htmlspecialchars($btn['id']) ?>"<?php endif; ?> class="btn <?= htmlspecialchars($btn['class'] ?? 'btn-primary') ?> btn-action btn-sm" onclick="<?= $btn['onclick'] ?? '' ?>" title="<?= htmlspecialchars($btn['label'] ?? '') ?>">
+                            <i class="<?= htmlspecialchars($btn['icon'] ?? 'fas fa-file') ?>"></i>
                         </button>
                     <?php endforeach; ?>
             </div>
@@ -41,7 +49,7 @@ $add_button = $add_button ?? null;
                 }
             ?>
             <button class="btn btn-primary btn-action" <?= implode(' ', array_map(function($k) use ($btnAttrs){ return $k . '="' . htmlspecialchars($btnAttrs[$k]) . '"'; }, array_keys($btnAttrs))) ?> <?php if (empty($btnAttrs)) echo 'onclick="' . ($add_button['onclick'] ?? '') . '"'; ?> >
-                <i class="fas fa-plus"></i> <?= htmlspecialchars($add_button['label']) ?>
+                <i class="fas fa-plus"></i> <span class="d-none d-sm-inline"><?= htmlspecialchars($add_button['label']) ?></span>
             </button>
         <?php endif; ?>
     </div>

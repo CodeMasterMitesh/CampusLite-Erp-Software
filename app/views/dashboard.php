@@ -31,17 +31,18 @@ foreach ($branches as $b) {
 <div class="dashboard-container" style="width:100%;max-width:none;">
         <!-- Dashboard header and controls removed for minimal look -->
 
-        <div class="row summary-row">
-            <div class="col-6 col-md-3">
-                <div class="card text-bg-primary">
+        <div class="row summary-row g-3 g-md-2">
+            <div class="col-6 col-sm-6 col-md-3">
+                <div class="card text-bg-primary summary-card">
                     <div class="card-body position-relative">
+                        <i class="fas fa-code-branch card-icon"></i>
                         <h6 class="card-title">Branches</h6>
                         <p class="card-text"><?= number_format(count($branches)) ?></p>
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card text-bg-success">
+            <div class="col-6 col-sm-6 col-md-3">
+                <div class="card text-bg-success summary-card">
                     <div class="card-body position-relative">
                         <i class="fas fa-users card-icon"></i>
                         <h6 class="card-title">Users</h6>
@@ -49,8 +50,8 @@ foreach ($branches as $b) {
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card text-bg-warning">
+            <div class="col-6 col-sm-6 col-md-3">
+                <div class="card text-bg-warning summary-card">
                     <div class="card-body position-relative">
                         <i class="fas fa-book card-icon"></i>
                         <h6 class="card-title">Courses</h6>
@@ -58,8 +59,8 @@ foreach ($branches as $b) {
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card text-bg-danger">
+            <div class="col-6 col-sm-6 col-md-3">
+                <div class="card text-bg-danger summary-card">
                     <div class="card-body position-relative">
                         <i class="fas fa-user-graduate card-icon"></i>
                         <h6 class="card-title">Students</h6>
@@ -69,33 +70,33 @@ foreach ($branches as $b) {
             </div>
         </div>
         <!-- Branch cards (single horizontal row) -->
-        <div class="row mt-3">
+        <div class="row mt-3 mt-md-4">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0">Branches</h6>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-2 gap-2">
+                    <h5 class="mb-0 section-title">Branches Overview</h5>
                     <div>
-                        <button id="branchToggleBtn" class="btn btn-sm btn-outline-secondary" title="Toggle branch view"><i class="fas fa-expand-arrows-alt"></i> Toggle View</button>
+                        <button id="branchToggleBtn" class="btn btn-sm btn-outline-secondary" title="Toggle branch view"><i class="fas fa-expand-arrows-alt"></i> <span class="d-none d-sm-inline">Toggle View</span></button>
                     </div>
                 </div>
                 <div id="branchListContainer">
-                    <div class="branch-list" style="display:flex;gap:0.75rem;overflow-x:auto;padding-bottom:0.5rem;padding-top:0.5rem;">
+                    <div class="branch-list" style="display:flex;gap:0.75rem;overflow-x:auto;padding-bottom:0.5rem;padding-top:0.5rem;-webkit-overflow-scrolling:touch;">
                         <?php foreach ($branchStats as $bs): $b = $bs['branch']; ?>
                             <div class="card branch-card" style="min-width:220px;flex:0 0 auto;">
-                                <div class="card-body small p-2">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="mb-0" style="font-size:0.95rem"><?= htmlspecialchars($b['name'] ?? 'Branch') ?></h6>
-                                            <small class="text-muted" style="font-size:0.75rem"><?= htmlspecialchars($b['address'] ?? '') ?></small>
+                                <div class="card-body small p-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1 branch-name" style="font-size:0.95rem;font-weight:600"><?= htmlspecialchars($b['name'] ?? 'Branch') ?></h6>
+                                            <small class="text-muted d-block branch-address" style="font-size:0.75rem;line-height:1.3"><?= htmlspecialchars($b['address'] ?? '') ?></small>
                                         </div>
-                                        <div class="text-end">
-                                            <div style="font-weight:700;font-size:1.1rem"><?= intval($bs['students']) ?></div>
-                                            <small class="text-muted" style="font-size:0.7rem">Students</small>
+                                        <div class="text-end ms-2">
+                                            <div class="branch-student-count" style="font-weight:700;font-size:1.1rem;color:var(--primary-color)"><?= intval($bs['students']) ?></div>
+                                            <small class="text-muted d-block" style="font-size:0.7rem">Students</small>
                                         </div>
                                     </div>
-                                    <div class="mt-2 d-flex gap-2 justify-content-between">
-                                        <button class="btn btn-sm btn-outline-primary branch-students" data-branch="<?= intval($b['id']) ?>" data-bs-toggle="tooltip" title="View students in <?= htmlspecialchars($b['name'] ?? '') ?>"><i class="fas fa-user-graduate"></i> </button>
-                                        <button class="btn btn-sm btn-outline-secondary branch-faculty" data-branch="<?= intval($b['id']) ?>" data-bs-toggle="tooltip" title="View faculty for <?= htmlspecialchars($b['name'] ?? '') ?>"><i class="fas fa-chalkboard-teacher"></i> </button>
-                                        <button class="btn btn-sm btn-outline-dark branch-batches" data-branch="<?= intval($b['id']) ?>" data-bs-toggle="tooltip" title="View batches for <?= htmlspecialchars($b['name'] ?? '') ?>"> <i class="fas fa-layer-group"></i> <span style="font-size:0.85rem;margin-left:4px"><?= intval($bs['batches'] ?? 0) ?></span></button>
+                                    <div class="mt-2 d-flex gap-2 justify-content-between branch-actions">
+                                        <button class="btn btn-sm btn-outline-primary branch-students flex-fill" data-branch="<?= intval($b['id']) ?>" data-bs-toggle="tooltip" title="View students in <?= htmlspecialchars($b['name'] ?? '') ?>"><i class="fas fa-user-graduate"></i> <span class="d-none d-lg-inline">Students</span></button>
+                                        <button class="btn btn-sm btn-outline-secondary branch-faculty flex-fill" data-branch="<?= intval($b['id']) ?>" data-bs-toggle="tooltip" title="View faculty for <?= htmlspecialchars($b['name'] ?? '') ?>"><i class="fas fa-chalkboard-teacher"></i> <span class="d-none d-lg-inline">Faculty</span></button>
+                                        <button class="btn btn-sm btn-outline-dark branch-batches flex-fill" data-branch="<?= intval($b['id']) ?>" data-bs-toggle="tooltip" title="View batches for <?= htmlspecialchars($b['name'] ?? '') ?>"> <i class="fas fa-layer-group"></i> <span style="font-size:0.85rem;margin-left:2px"><?= intval($bs['batches'] ?? 0) ?></span></button>
                                     </div>
                                 </div>
                             </div>
@@ -105,59 +106,78 @@ foreach ($branches as $b) {
             </div>
         </div>
         <!-- Calendar and Reminders side-by-side -->
-        <div class="row mt-3">
-            <div class="col-12 col-lg-8">
-                <div class="card">
+        <div class="row mt-3 mt-md-4">
+            <div class="col-12 col-lg-8 mb-3 mb-lg-0">
+                <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">Calendar</h5>
-                        <div id="dashboard-calendar"></div>
+                        <h5 class="card-title mb-3"><i class="fas fa-calendar-alt me-2"></i>Calendar</h5>
+                        <div id="dashboard-calendar" class="calendar-wrapper"></div>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-lg-4">
-                <div class="card">
+                <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">Reminders</h5>
-                        <div id="dashboard-reminders"></div>
+                        <h5 class="card-title mb-3"><i class="fas fa-bell me-2"></i>Reminders</h5>
+                        <div id="dashboard-reminders" class="reminders-wrapper"></div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Courses full-width -->
-        <div class="row mt-3">
+        <div class="row mt-3 mt-md-4">
             <div class="col-12">
                 <div class="card">
                     <div class="card-body">
-                            <h5 class="card-title">Courses (<?= count($courses) ?>)</h5>
-                            <ul class="list-unstyled mt-3 row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">
-                                <?php if (empty($courses)): ?>
-                                    <li class="text-muted">No courses found</li>
-                                <?php else: ?>
-                                    <?php foreach (array_slice($courses, 0, 12) as $c): ?>
-                                        <?php
-                                            $capacity = intval($c['total_capacity'] ?? 0);
-                                            $enrolled = intval($c['enrolled_count'] ?? 0);
-                                            $seats_left = max(0, $capacity - $enrolled);
-                                        ?>
-                                        <li class="col">
-                                            <div class="p-2 border rounded h-100">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <strong><?= htmlspecialchars($c['title'] ?? $c['name'] ?? '') ?></strong>
-                                                    <span class="badge bg-secondary"><?= htmlspecialchars($c['duration_months'] ?? '') ?> mo</span>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0"><i class="fas fa-book me-2"></i>Courses <span class="badge bg-primary"><?= count($courses) ?></span></h5>
+                            <?php if (count($courses) > 12): ?>
+                                <a href="index.php?page=courses" class="btn btn-sm btn-action d-none d-md-inline-flex"><i class="fas fa-arrow-right me-1"></i>View All</a>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (empty($courses)): ?>
+                            <div class="text-center py-5">
+                                <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No courses found</p>
+                            </div>
+                        <?php else: ?>
+                            <ul class="list-unstyled row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3 mb-0">
+                                <?php foreach (array_slice($courses, 0, 12) as $c): ?>
+                                    <?php
+                                        $capacity = intval($c['total_capacity'] ?? 0);
+                                        $enrolled = intval($c['enrolled_count'] ?? 0);
+                                        $seats_left = max(0, $capacity - $enrolled);
+                                    ?>
+                                    <li class="col">
+                                        <div class="p-3 border rounded h-100 course-card-item">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <strong class="course-title"><?= htmlspecialchars($c['title'] ?? $c['name'] ?? '') ?></strong>
+                                                <span class="badge bg-secondary ms-2"><?= htmlspecialchars($c['duration_months'] ?? '') ?> mo</span>
+                                            </div>
+                                            <div class="text-muted small mb-2">
+                                                <i class="fas fa-code-branch me-1"></i>Branch: <?= intval($c['branch_id'] ?: 0) ?>
+                                            </div>
+                                            <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+                                                <div class="small text-muted">
+                                                    <i class="fas fa-money-bill-wave me-1"></i><?= htmlspecialchars($c['total_fee'] ?? '0.00') ?>
                                                 </div>
-                                                <div class="text-muted small mt-1">Branch: <?= intval($c['branch_id'] ?: 0) ?></div>
-                                                <div class="mt-2 d-flex justify-content-between align-items-center">
-                                                    <div class="small text-muted">Fee: <?= htmlspecialchars($c['total_fee'] ?? '0.00') ?></div>
-                                                    <div class="small"><strong>Seats:</strong> <?= $seats_left ?></div>
+                                                <div class="small">
+                                                    <strong class="text-primary">Seats:</strong> <span class="badge bg-info"><?= $seats_left ?></span>
                                                 </div>
                                             </div>
-                                        </li>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                        </div>
+                                    </li>
+                                <?php endforeach; ?>
                             </ul>
-                        <?php if (count($courses) > 12): ?>
-                            <div class="mt-2 text-end"><a href="index.php?page=courses" class="btn btn-sm btn-action">View All Courses</a></div>
+                            <?php if (count($courses) > 12): ?>
+                                <div class="mt-3 text-center d-md-none">
+                                    <a href="index.php?page=courses" class="btn btn-sm btn-action w-100"><i class="fas fa-arrow-right me-1"></i>View All Courses</a>
+                                </div>
+                                <div class="mt-3 text-end d-none d-md-block">
+                                    <a href="index.php?page=courses" class="btn btn-sm btn-action"><i class="fas fa-arrow-right me-1"></i>View All Courses</a>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -396,13 +416,15 @@ function initDashboard() {
             // remove any existing calendar content
             calendarEl.innerHTML = '';
                 var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                height: 600,
+                initialView: window.innerWidth < 768 ? 'dayGridMonth' : 'dayGridMonth',
+                height: window.innerWidth < 768 ? 450 : (window.innerWidth < 992 ? 500 : 600),
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    right: window.innerWidth < 768 ? 'dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
+                adaptiveHeight: true,
+                aspectRatio: window.innerWidth < 768 ? 1.2 : 1.5,
                 events: async function(fetchInfo, successCallback, failureCallback) {
                     try {
                         let data = await fetchJson('api/attendance.php?action=calendar');
@@ -435,7 +457,17 @@ function initDashboard() {
             // expose calendar so resize/updateSize can be called after AJAX navigation or window resize
             try { window._dashboardCalendar = calendar; } catch(e){}
             if (!window._dashboardResizeAttached) {
-                window.addEventListener('resize', function() { if (window._dashboardCalendar && typeof window._dashboardCalendar.updateSize === 'function') window._dashboardCalendar.updateSize(); });
+                window.addEventListener('resize', function() { 
+                    if (window._dashboardCalendar && typeof window._dashboardCalendar.updateSize === 'function') {
+                        window._dashboardCalendar.updateSize();
+                        // Adjust calendar height on resize
+                        var calendarEl = document.getElementById('dashboard-calendar');
+                        if (calendarEl && window._dashboardCalendar) {
+                            var newHeight = window.innerWidth < 768 ? 450 : (window.innerWidth < 992 ? 500 : 600);
+                            window._dashboardCalendar.setOption('height', newHeight);
+                        }
+                    }
+                });
                 window._dashboardResizeAttached = true;
             }
         }
@@ -510,13 +542,15 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('FullCalendar is not defined. Check that the script loaded correctly.');
         } else {
             var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            height: 600,
+            initialView: window.innerWidth < 768 ? 'dayGridMonth' : 'dayGridMonth',
+            height: window.innerWidth < 768 ? 450 : (window.innerWidth < 992 ? 500 : 600),
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                right: window.innerWidth < 768 ? 'dayGridMonth' : 'dayGridMonth,timeGridWeek,timeGridDay'
             },
+            adaptiveHeight: true,
+            aspectRatio: window.innerWidth < 768 ? 1.2 : 1.5,
             events: async function(fetchInfo, successCallback, failureCallback) {
                 // Fetch lecture counts per day (replace with your API)
                 try {
@@ -557,6 +591,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
             calendar.render();
+            // Expose calendar for resize handling
+            try { window._dashboardCalendar = calendar; } catch(e){}
+            
+            // Handle window resize for calendar
+            if (!window._dashboardResizeAttached) {
+                window.addEventListener('resize', function() { 
+                    if (window._dashboardCalendar && typeof window._dashboardCalendar.updateSize === 'function') {
+                        window._dashboardCalendar.updateSize();
+                        var newHeight = window.innerWidth < 768 ? 450 : (window.innerWidth < 992 ? 500 : 600);
+                        window._dashboardCalendar.setOption('height', newHeight);
+                    }
+                });
+                window._dashboardResizeAttached = true;
+            }
         }
     }
 
