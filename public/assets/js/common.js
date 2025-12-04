@@ -27,18 +27,19 @@ function initAdvancedTable(tableSelector) {
         fixedHeader:true, 
         pageLength:10, 
         lengthMenu:[10,25,50,100], 
-        responsive: {
-            details: {
-                type: 'column',
-                target: 'tr'
-            }
-        },
+        responsive: false,
+        scrollX: true,
+        scrollCollapse: true,
+        autoWidth: true,
+        deferRender: true,
         columnDefs:[
             {orderable:false,targets:[0,-1]},
             {responsivePriority: 1, targets: 0},
             {responsivePriority: 2, targets: -1}
         ]
     });
+    try { dataTable.columns.adjust().draw(false); } catch(e) {}
+    try { window.addEventListener('resize', function(){ try { dataTable.columns.adjust(); } catch(e) {} }); } catch(e) {}
     table.find('thead').off('keyup change', 'tr.filters input').on('keyup change', 'tr.filters input', function(){
         const idx=$(this).closest('th').index();
         const val=$(this).val();

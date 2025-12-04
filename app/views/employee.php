@@ -135,29 +135,108 @@ $branches = BranchController::getAll();
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addEmployeeForm">
+                <form id="addEmployeeForm" enctype="multipart/form-data">
                     <input type="hidden" name="id" id="employeeId" value="">
-                    <div class="mb-3">
-                        <label class="form-label">Employee Name</label>
-                        <input type="text" class="form-control" name="name" required>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Employee Name</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" name="password" placeholder="Set initial password">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" name="role" disabled>
+                                <option value="employee" selected>Employee</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" class="form-control" name="mobile" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" name="branch_id" id="employeeBranch" required>
+                                <option value="0">-- Select Branch --</option>
+                                <?php foreach ($branches as $b): ?>
+                                    <option value="<?= intval($b['id']) ?>"><?= htmlspecialchars($b['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Profile Photo</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <img id="employeePhotoPreview" src="" alt="Preview" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:none;">
+                                <input type="file" class="form-control" name="profile_photo" id="employeePhotoInput" accept="image/*">
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="removeEmployeePhoto" style="display:none;">Remove</button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Birthdate</label>
+                            <input type="date" class="form-control" name="dob">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" name="gender">
+                                <option value="">-- Select --</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Marital Status</label>
+                            <select class="form-select" name="marital_status">
+                                <option value="">-- Select --</option>
+                                <option value="single">Single</option>
+                                <option value="married">Married</option>
+                                <option value="divorced">Divorced</option>
+                                <option value="widowed">Widowed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Joining Date</label>
+                            <input type="date" class="form-control" name="joining_date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Resign Date</label>
+                            <input type="date" class="form-control" name="resign_date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">IN Time</label>
+                            <input type="time" class="form-control" name="in_time">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">OUT Time</label>
+                            <input type="time" class="form-control" name="out_time">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Address</label>
+                            <input type="text" class="form-control" name="address" placeholder="Street address">
+                        </div>
+                        <div class="col-md-4"><input type="text" class="form-control" name="area" placeholder="Area"></div>
+                        <div class="col-md-4"><input type="text" class="form-control" name="city" placeholder="City"></div>
+                        <div class="col-md-4"><input type="text" class="form-control" name="pincode" placeholder="Pincode"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" name="state" placeholder="State"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" name="country" placeholder="Country"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" name="aadhar_card" placeholder="Aadhar Card"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" name="pan_card" placeholder="PAN Card"></div>
+                        <div class="col-md-6"><input type="text" class="form-control" name="passport" placeholder="Passport"></div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" name="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Phone</label>
-                        <input type="tel" class="form-control" name="phone" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Branch</label>
-                        <select class="form-control" name="branch_id" id="employeeBranch" required>
-                            <option value="0">-- Select Branch --</option>
-                            <?php foreach ($branches as $b): ?>
-                                <option value="<?= intval($b['id']) ?>"><?= htmlspecialchars($b['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                    <hr>
+                    <h6>Educational Details</h6>
+                    <div id="educationList" class="mb-2"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addEducationRow">Add Education</button>
+                    <hr>
+                    <h6>Employment Details</h6>
+                    <div id="employmentList" class="mb-2"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addEmploymentRow">Add Employment</button>
                 </form>
             </div>
             <div class="modal-footer">
@@ -167,113 +246,5 @@ $branches = BranchController::getAll();
         </div>
     </div>
 </div>
+<script src="/public/assets/js/employee.js"></script>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    try {
-        const table = $('#employee-table');
-        const thead = table.find('thead');
-        const filterRow = $('<tr>').addClass('filters');
-        thead.find('tr').first().children().each(function() {
-            const th = $('<th>');
-            if ($(this).text().trim() === 'Actions') th.html(''); else th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
-            filterRow.append(th);
-        });
-        thead.append(filterRow);
-        const dataTable = table.DataTable({ 
-            dom: 'lrtip', 
-            orderCellsTop:true, 
-            fixedHeader:true, 
-            pageLength:10, 
-            lengthMenu:[10,25,50,100], 
-            responsive: {
-                details: {
-                    type: 'column',
-                    target: 'tr'
-                }
-            },
-            columnDefs:[
-                {orderable:false, targets:-1},
-                {responsivePriority: 1, targets: 0},
-                {responsivePriority: 2, targets: -1}
-            ]
-        });
-        $('#employee-table thead').on('keyup change','tr.filters input', function(){ const idx=$(this).closest('th').index(); const val=$(this).val(); if(dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw(); });
-    } catch(e){}
-    document.querySelector('.dashboard-container').classList.add('show');
-});
-</script>
-    // Export to Excel
-    function exportToExcel() {
-        showLoading();
-        setTimeout(() => {
-            window.location.href = '?page=employee&export=excel';
-            hideLoading();
-        }, 1000);
-    }
-    // Print table
-    function printTable() {
-        const table = document.getElementById('employee-table').cloneNode(true);
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>Employee Report</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f8f9fa; }
-                    </style>
-                </head>
-                <body>
-                    <h2>Employee Report</h2>
-                    ${table.outerHTML}
-                    <p>Generated on: ${new Date().toLocaleDateString()}</p>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-    }
-    // Refresh table
-    function refreshTable() {
-        showLoading();
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
-    }
-    // Loading states
-    function showLoading() {
-        const container = document.getElementById('tableContainer');
-        const overlay = document.createElement('div');
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div class="spinner-border text-primary spinner" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        `;
-        container.style.position = 'relative';
-        container.appendChild(overlay);
-    }
-    function hideLoading() {
-        const overlay = document.querySelector('.loading-overlay');
-        if (overlay) overlay.remove();
-    }
-    // Employee management functions
-    async function editEmployee(id){ CRUD.showLoading('tableContainer'); try{ const res=await CRUD.get(`api/employee.php?action=get&id=${encodeURIComponent(id)}`); if(res.success&&res.data){ const e=res.data; document.getElementById('employeeId').value=e.id||''; document.querySelector('#addEmployeeForm [name="name"]').value=e.name||''; document.querySelector('#addEmployeeForm [name="email"]').value=e.email||''; document.querySelector('#addEmployeeForm [name="phone"]').value=e.mobile||e.phone||''; document.getElementById('employeeBranch').value=e.branch_id||0; const modalEl=document.getElementById('addEmployeeModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show(); } else alert('Employee not found'); }catch(e){ alert('Failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    async function viewEmployee(id){ await editEmployee(id); const form=document.getElementById('addEmployeeForm'); Array.from(form.elements).forEach(el=>el.disabled=true); const saveBtn=document.querySelector('#addEmployeeModal .btn-primary'); if(saveBtn) saveBtn.style.display='none'; document.querySelector('#addEmployeeModal .modal-title').innerText='View Employee'; }
-    async function deleteEmployee(id){ if(!confirm('Delete employee '+id+'?')) return; CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res=await CRUD.post('api/employee.php?action=delete', p); if(res.success) refreshTable(); else alert('Delete failed'); }catch(e){ alert('Delete failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    async function saveEmployee(){ const form=document.getElementById('addEmployeeForm'); const params=new FormData(form); if(!params.get('name')){ alert('Name required'); return;} CRUD.showLoading('tableContainer'); try{ const id=params.get('id'); const action = id ? 'update' : 'create'; const res=await CRUD.post('api/employee.php?action='+action, params); if(res.success){ const modalEl=document.getElementById('addEmployeeModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.hide(); refreshTable(); } else alert('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ alert('Request failed: '+e.message);} finally{ CRUD.hideLoading(); } }
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'f') {
-            e.preventDefault();
-            const si = document.getElementById('searchInput'); if (si) si.focus();
-        }
-        if (e.ctrlKey && e.key === 'n') {
-            e.preventDefault();
-            document.querySelector('[data-bs-target="#addEmployeeModal"]').click();
-        }
-    });
-</script>

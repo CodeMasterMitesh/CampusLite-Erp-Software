@@ -373,38 +373,52 @@
 }
 
 /* DataTables wrapper resilience on mobile */
-.dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter { display: flex; align-items: center; gap: 0.5rem; }
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter { display: flex; align-items: center; gap: 0.5rem; }
 @media (max-width: 576px) {
     .dataTables_wrapper .row { display: block; }
-    .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter { width: 10%; justify-content: space-between; margin-bottom: 0.5rem; }
-    .dataTables_wrapper .dataTables_length select { max-width: 120px; }
-    .dataTables_wrapper .dataTables_filter input { width: 100%; }
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter { width: 100%; justify-content: space-between; margin-bottom: 0.5rem; }
+    .dataTables_wrapper .dataTables_length select { max-width: 140px; }
+    .dataTables_wrapper .dataTables_filter label { display: flex; align-items: center; gap: 0.5rem; width: 100%; }
+    .dataTables_wrapper .dataTables_filter input { flex: 1 1 auto; width: 100%; }
 }
 
-/* Table header filters compact alignment */
-table.table.data-table thead tr.filters th { padding-top: 0.35rem; padding-bottom: 0.35rem; }
-table.table.data-table thead tr.filters input.form-control.form-control-sm { min-width: 100px; }
-@media (max-width: 576px) {
-    table.table.data-table thead tr.filters input.form-control.form-control-sm { min-width: 72px; }
+/* Table header filters — single consolidated rules */
+table.table.data-table thead tr.filters th {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
 }
-/* Responsive data tables: compact spacing and mobile-friendly stacking */
+table.table.data-table thead tr.filters input.form-control.form-control-sm {
+    min-width: 120px;
+    width: 100%;
+}
+@media (max-width: 768px) {
+    table.table.data-table thead tr.filters input.form-control.form-control-sm {
+        min-width: 90px;
+    }
+}
+@media (max-width: 576px) {
+    table.table.data-table thead tr.filters input.form-control.form-control-sm {
+        min-width: 72px;
+    }
+}
+/* Table compact spacing */
 .table-compact tbody td, .table-compact thead th { padding: 0.5rem 0.5rem; }
 .table-compact .btn-table { padding: 0.15rem 0.35rem; }
 
-@media (max-width: 576px) {
-    /* Stack table rows into cards on small screens using data-label */
-    .table-compact.table.data-table thead { display: none; }
-    .table-compact.table.data-table tbody tr { display: block; margin-bottom: 0.75rem; border: 1px solid rgba(15,23,42,0.08); border-radius: 10px; padding: 0.5rem; background: #fff; box-shadow: 0 4px 12px rgba(15,23,42,0.06); }
-    .table-compact.table.data-table tbody td { display: grid; grid-template-columns: 40% 1fr; align-items: center; padding: 0.4rem 0.25rem; border: none; }
-    .table-compact.table.data-table tbody td::before { content: attr(data-label); font-weight: 600; color: #475569; padding-right: 0.5rem; }
-    .table-compact.table.data-table tbody td.text-center { justify-content: start; }
-    .table-compact.table.data-table .table-actions { display: flex; gap: 0.4rem; }
-    .table-compact.table.data-table .status-badge { display: inline-block; padding: 0.2rem 0.5rem; font-size: 0.775rem; }
+/* Prefer horizontal scrolling over column hiding on small screens */
+.dataTables_wrapper .dataTables_scrollBody { overflow-x: auto !important; }
+/* Ensure header and body tables consume full available width */
+.dataTables_wrapper .dataTables_scrollHeadInner,
+.dataTables_wrapper .dataTables_scrollBody table {
+    width: 100% !important;
+    margin-left: 0 !important;
 }
-
-/* DataTables responsive details co-existence: ensure our stacking only applies when inline details are not used */
-.dtr-inline .table-compact.table.data-table tbody tr { display: table-row; box-shadow: none; border: none; border-radius: 0; padding: 0; }
-.dtr-inline .table-compact.table.data-table tbody td { display: table-cell; grid-template-columns: none; }
+/* Allow wrapping if columns are too long to avoid excessive widths */
+.dataTables_wrapper .dataTables_scrollBody table {
+    white-space: normal;
+}
 .notification-badge {
     position: absolute;
     top: -2px;
@@ -854,9 +868,7 @@ table.table.data-table thead tr.filters input.form-control.form-control-sm { min
          justify-content: flex-end;
      }
 
-     .navbar-nav .nav-link {
-         padding: 0.75rem 1rem;
-     }
+    /* Consolidated in max-width: 991px block */
  }
 
  /* Animation for page load */
@@ -988,6 +1000,7 @@ table.table.data-table thead tr.filters input.form-control.form-control-sm { min
     }
     
     /* Ensure dropdowns appear above navbar but below modals */
+    /* Scoped dropdown menu styling for right cluster to avoid global conflicts */
     .navbar-right .dropdown-menu {
         z-index: 1032 !important;
         max-width: 320px;
@@ -1093,11 +1106,7 @@ table.table.data-table thead tr.filters input.form-control.form-control-sm { min
         width: 100% !important;
     }
     
-    .navbar-nav .nav-link {
-        padding: 0.55rem 0.9rem !important;
-        margin: 0.1rem 0.4rem;
-        font-size: 0.9rem;
-    }
+    /* Consolidated nav-link sizing in max-width: 991px block */
     
     /* Compact notification dropdown on tablet */
     #notificationDropdown + .dropdown-menu {
@@ -1130,11 +1139,7 @@ table.table.data-table thead tr.filters input.form-control.form-control-sm { min
         width: 100% !important;
     }
     
-    .navbar-nav .nav-link {
-        padding: 0.5rem 0.8rem !important;
-        margin: 0.1rem 0.3rem;
-        font-size: 0.85rem;
-    }
+    /* Consolidated nav-link sizing in max-width: 991px block */
     
     .navbar-collapse .dropdown-menu {
         margin-left: 0.8rem;
@@ -2225,6 +2230,9 @@ table.dataTable.dtr-inline.collapsed > tbody > tr.parent > th:first-child:before
         height: 18px;
         font-size: 0.7rem;
         line-height: 14px;
+    }
+    .table-actions{
+        flex-direction: row;
     }
 }
 
