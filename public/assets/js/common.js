@@ -1,37 +1,50 @@
 // Common helpers for DataTables and modal handling
 function initAdvancedTable(tableSelector) {
     const table = $(tableSelector);
+    if (!table.length) return null;
+    // Prevent reinitialization: if already a DataTable, reuse instance
+    if ($.fn.DataTable && $.fn.DataTable.isDataTable && $.fn.DataTable.isDataTable(tableSelector)) {
+        return table.DataTable();
+    }
     const thead = table.find('thead');
-    const filterRow = $('<tr>').addClass('filters');
-    thead.find('tr').first().children().each(function() {
-        const th = $('<th>');
-        if ($(this).find('input[type="checkbox"]').length || $(this).text().trim() === 'Actions') {
-            th.html('');
-        } else {
-            th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
-        }
-        filterRow.append(th);
-    });
-    thead.append(filterRow);
+    // Avoid adding duplicate filter rows
+    if (!thead.find('tr.filters').length) {
+        const filterRow = $('<tr>').addClass('filters');
+        thead.find('tr').first().children().each(function() {
+            const th = $('<th>');
+            if ($(this).find('input[type="checkbox"]').length || $(this).text().trim() === 'Actions') {
+                th.html('');
+            } else {
+                th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
+            }
+            filterRow.append(th);
+        });
+        thead.append(filterRow);
+    }
     const dataTable = table.DataTable({ 
         dom: 'lrtip', 
         orderCellsTop:true, 
         fixedHeader:true, 
         pageLength:10, 
         lengthMenu:[10,25,50,100], 
-        responsive: {
-            details: {
-                type: 'column',
-                target: 'tr'
-            }
-        },
+        responsive: false,
+        scrollX: true,
+        scrollCollapse: true,
+        autoWidth: true,
+        deferRender: true,
         columnDefs:[
             {orderable:false,targets:[0,-1]},
             {responsivePriority: 1, targets: 0},
             {responsivePriority: 2, targets: -1}
         ]
     });
-    table.find('thead').on('keyup change', 'tr.filters input', function(){ const idx=$(this).closest('th').index(); const val=$(this).val(); if (dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw(); });
+    try { dataTable.columns.adjust().draw(false); } catch(e) {}
+    try { window.addEventListener('resize', function(){ try { dataTable.columns.adjust(); } catch(e) {} }); } catch(e) {}
+    table.find('thead').off('keyup change', 'tr.filters input').on('keyup change', 'tr.filters input', function(){
+        const idx=$(this).closest('th').index();
+        const val=$(this).val();
+        if (dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw();
+    });
     return dataTable;
 }
 

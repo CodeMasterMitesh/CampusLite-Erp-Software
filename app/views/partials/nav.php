@@ -95,50 +95,26 @@ $canAccess = function (array $roles) use ($userRole): bool {
 };
 
 ?>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-elevated border-bottom">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="index.php?page=dashboard">
             <img src="/public/assets/images/CampusLite_Erp_1.png" alt="CampusLite" width="56" height="56" class="me-2">
-            <span class="fw-semibold">CampusLite ERP</span>
+            <span class="fw-semibold text-dark">CampusLite ERP</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="mainNavbar">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <?php foreach ($navSections as $section): ?>
-                    <?php if (!$canAccess($section['roles'] ?? [])) continue; ?>
-                    <?php if (!empty($section['children'])): ?>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle <?= in_array($activePage, array_column($section['children'], 'page'), true) ? 'active' : '' ?>" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <?php if (!empty($section['icon'])): ?><i class="fas <?= htmlspecialchars($section['icon']) ?> me-1"></i><?php endif; ?>
-                                <?= htmlspecialchars($section['label'] ?? '') ?>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow">
-                                <?php foreach ($section['children'] as $child): ?>
-                                    <?php if (!$canAccess($child['roles'] ?? [])) continue; ?>
-                                    <li>
-                                        <a class="dropdown-item <?= ($child['page'] ?? '') === $activePage ? 'active' : '' ?>" href="index.php?page=<?= urlencode($child['page']) ?>">
-                                            <?php if (!empty($child['icon'])): ?><i class="fas <?= htmlspecialchars($child['icon']) ?> me-2"></i><?php endif; ?>
-                                            <?= htmlspecialchars($child['label'] ?? '') ?>
-                                        </a>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </li>
-                    <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link <?= ($section['page'] ?? '') === $activePage ? 'active' : '' ?>" href="index.php?page=<?= urlencode($section['page'] ?? 'dashboard') ?>">
-                                <?php if (!empty($section['icon'])): ?><i class="fas <?= htmlspecialchars($section['icon']) ?> me-1"></i><?php endif; ?>
-                                <?= htmlspecialchars($section['label'] ?? '') ?>
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            </ul>
-            <ul class="navbar-nav mb-2 mb-lg-0 align-items-center">
+        <div class="navbar-right d-flex align-items-center ms-auto">
+            <ul class="navbar-nav flex-row align-items-center mb-0">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" data-no-ajax>
+                        <i class="fas fa-bell"></i>
+                        <span class="position-absolute translate-middle badge rounded-pill bg-danger" style="font-size:0.65rem;">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown" style="min-width: 260px;">
+                        <li><h6 class="dropdown-header">Notifications</h6></li>
+                        <li><span class="dropdown-item-text text-muted small">No new notifications</span></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" data-no-ajax>
                         <img src="https://ui-avatars.com/api/?name=<?= urlencode($currentUser['name'] ?? 'User') ?>&background=0D8ABC&color=fff" alt="User" width="32" height="32" class="rounded-circle me-2">
                         <span class="d-none d-lg-inline">
                             <?= htmlspecialchars($currentUser['name'] ?? 'User') ?>
@@ -158,6 +134,59 @@ $canAccess = function (array $roles) use ($userRole): bool {
                     </ul>
                 </li>
             </ul>
+            <button class="navbar-toggler ms-1" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+        <div class="collapse navbar-collapse mt-2 mt-lg-0" id="mainNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <?php $sectionIndex = 0; ?>
+                <?php foreach ($navSections as $section): ?>
+                    <?php if (!$canAccess($section['roles'] ?? [])) continue; ?>
+                    <?php
+                        $sectionIndex++;
+                        $hasChildren = !empty($section['children']);
+                        $panelId = null;
+                        if ($hasChildren) {
+                            $panelSlug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', ($section['label'] ?? ('section-' . $sectionIndex)) . '-' . $sectionIndex));
+                            $panelId = 'nav-panel-' . $panelSlug;
+                        }
+                        $isActive = ($section['page'] ?? '') === $activePage;
+                        if ($hasChildren) {
+                            $childrenPages = array_column($section['children'], 'page');
+                            $isActive = in_array($activePage, $childrenPages, true);
+                        }
+                    ?>
+                    <?php if ($hasChildren): ?>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle <?= $isActive ? 'active' : '' ?>" href="#" id="navDropdown<?= $sectionIndex ?>" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                                <?php if (!empty($section['icon'])): ?><i class="fas <?= htmlspecialchars($section['icon']) ?> me-1"></i><?php endif; ?>
+                                <?= htmlspecialchars($section['label'] ?? '') ?>
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navDropdown<?= $sectionIndex ?>">
+                                <?php foreach ($section['children'] as $child): ?>
+                                    <?php if (!$canAccess($child['roles'] ?? [])) continue; ?>
+                                    <li>
+                                        <a class="dropdown-item <?= ($child['page'] ?? '') === $activePage ? 'active' : '' ?>" href="index.php?page=<?= urlencode($child['page']) ?>">
+                                            <?php if (!empty($child['icon'])): ?><i class="fas <?= htmlspecialchars($child['icon']) ?> me-2"></i><?php endif; ?>
+                                            <?= htmlspecialchars($child['label'] ?? '') ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </li>
+                    <?php else: ?>
+                        <li class="nav-item">
+                            <a class="nav-link <?= $isActive ? 'active' : '' ?>" href="index.php?page=<?= urlencode($section['page'] ?? 'dashboard') ?>">
+                                <?php if (!empty($section['icon'])): ?><i class="fas <?= htmlspecialchars($section['icon']) ?> me-1"></i><?php endif; ?>
+                                <?= htmlspecialchars($section['label'] ?? '') ?>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </ul>
+            
         </div>
     </div>
 </nav>
+<!-- Standard Bootstrap dropdowns are now used; side panel removed. -->
