@@ -12,7 +12,7 @@ async function editEmployee(id){
 		const res=await CRUD.get(`api/employee.php?action=get&id=${encodeURIComponent(id)}`);
 		if(res.success&&res.data){
 			const e=res.data;
-			const setVal = (sel,val)=>{ const el=document.querySelector(sel); if(el) el.value = val ?? ''; };
+			const setVal = (sel,val)=>{ const el=document.querySelector(sel); if(el){ if (el.type === 'file') { /* never set non-empty programmatically */ el.value = ''; } else { el.value = val ?? ''; } } };
 			const setSelVal = (id,val)=>{ const el=document.getElementById(id); if(el) el.value = val ?? ''; };
 			const setDate = (sel,val)=>{ const el=document.querySelector(sel); if(el) el.value = (val||'').slice(0,10); };
 			// core fields
@@ -45,8 +45,25 @@ async function editEmployee(id){
 				if (e.profile_photo) { img.src = '/public/uploads/employees/' + e.profile_photo; img.style.display=''; if (removeBtn) removeBtn.style.display=''; }
 				else { img.src=''; img.style.display='none'; if (removeBtn) removeBtn.style.display='none'; }
 			}
-			// reset file input
+			// show existing document filenames as links (no file value set)
+			const setDocInfo = (id, filename)=>{
+				const el=document.getElementById(id); if(!el) return;
+				if(filename){
+					const url = '/public/uploads/employees/' + filename;
+					el.innerHTML = `Existing: <a href="${url}" target="_blank" rel="noopener">${filename}</a>`;
+					el.style.display='';
+				} else { el.textContent=''; el.style.display='none'; }
+			};
+			setDocInfo('aadharFileInfo', e.aadhar_card);
+			setDocInfo('panFileInfo', e.pan_card);
+			setDocInfo('passportFileInfo', e.passport);
+			// reset file input (allowed to set only empty string)
 			const fileInput = document.getElementById('employeePhotoInput'); if (fileInput) fileInput.value='';
+			// prefill education and employment rows
+			const eduWrap = document.getElementById('educationList'); if (eduWrap) eduWrap.innerHTML='';
+			const empWrap = document.getElementById('employmentList'); if (empWrap) empWrap.innerHTML='';
+			if (Array.isArray(e.education)) e.education.forEach(item=>addEducationRow(item)); else addEducationRow();
+			if (Array.isArray(e.employment)) e.employment.forEach(item=>addEmploymentRow(item));
 			// enable form and set modal
 			const form=document.getElementById('addEmployeeForm'); if(form) Array.from(form.elements).forEach(el=>el.disabled=false);
 			const titleEl=document.querySelector('#addEmployeeModal .modal-title'); if(titleEl) titleEl.innerText='Edit Employee';
@@ -61,7 +78,6 @@ async function viewEmployee(id){ if(window.CRUD && CRUD.showLoading) CRUD.showLo
 
 async function deleteEmployee(id){ if(!confirm('Delete employee '+id+'?')) return; if(window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res=await CRUD.post('api/employee.php?action=delete', p); if(res.success){ window.CRUD && CRUD.toastSuccess && CRUD.toastSuccess('Deleted'); refreshTable(); } else window.CRUD && CRUD.toastError && CRUD.toastError('Delete failed'); }catch(e){ window.CRUD && CRUD.toastError && CRUD.toastError('Delete failed: '+e.message);} finally{ window.CRUD && CRUD.hideLoading && CRUD.hideLoading(); } }
 
-async function saveEmployee(){ const form=document.getElementById('addEmployeeForm'); const params=new FormData(form); if(!params.get('name')){ window.CRUD && CRUD.toastError && CRUD.toastError('Name required'); return; } const modalEl=document.getElementById('addEmployeeModal'); window.CRUD && CRUD.modalLoadingStart && CRUD.modalLoadingStart(modalEl); try{ const id=params.get('id'); const action = id ? 'update' : 'create'; const res=await CRUD.post('api/employee.php?action='+action, params); if(res.success){ bootstrap.Modal.getOrCreateInstance(modalEl).hide(); window.CRUD && CRUD.toastSuccess && CRUD.toastSuccess(res.message||'Saved'); refreshTable(); } else window.CRUD && CRUD.toastError && CRUD.toastError('Save failed: '+(res.message||res.error||'Unknown')); }catch(e){ window.CRUD && CRUD.toastError && CRUD.toastError('Request failed: '+e.message); } finally{ window.CRUD && CRUD.modalLoadingStop && CRUD.modalLoadingStop(modalEl); } }
 
 // Dynamic rows for Education and Employment
 function addEducationRow(prefill){ const wrap=document.getElementById('educationList'); if(!wrap) return; const row=document.createElement('div'); row.className='row g-2 align-items-end mb-2'; row.innerHTML=`
@@ -86,23 +102,58 @@ function addEmploymentRow(prefill){ const wrap=document.getElementById('employme
 	wrap.appendChild(row);
 }
 
-function collectEducation(){ const wrap=document.getElementById('educationList'); if(!wrap) return []; const rows=[...wrap.children]; return rows.map(r=>{ const inputs=[...r.querySelectorAll('input')]; return { degree:inputs[0].value, institute:inputs[1].value, from_date:inputs[2].value, to_date:inputs[3].value, grade:inputs[4].value, specialization:inputs[5].value }; }); }
-function collectEmployment(){ const wrap=document.getElementById('employmentList'); if(!wrap) return []; const rows=[...wrap.children]; return rows.map(r=>{ const inputs=[...r.querySelectorAll('input')]; return { organisation:inputs[0].value, designation:inputs[1].value, from_date:inputs[2].value, to_date:inputs[3].value, annual_ctc:inputs[4].value }; }); }
+function collectEducation(){
+	const wrap=document.getElementById('educationList'); if(!wrap) return [];
+	const rows=[...wrap.children];
+	return rows
+		.map(r=>{
+			const inputs=[...r.querySelectorAll('input')];
+			return {
+				degree:inputs[0].value.trim(),
+				institute:inputs[1].value.trim(),
+				from_date:inputs[2].value,
+				to_date:inputs[3].value,
+				grade:inputs[4].value.trim(),
+				specialization:inputs[5].value.trim()
+			};
+		})
+		// keep rows that have at least one non-empty field
+		.filter(row => Object.values(row).some(v => (v||'').trim() !== ''));
+}
+function collectEmployment(){
+	const wrap=document.getElementById('employmentList'); if(!wrap) return [];
+	const rows=[...wrap.children];
+	return rows
+		.map(r=>{
+			const inputs=[...r.querySelectorAll('input')];
+			return {
+				organisation:inputs[0].value.trim(),
+				designation:inputs[1].value.trim(),
+				from_date:inputs[2].value,
+				to_date:inputs[3].value,
+				annual_ctc:inputs[4].value
+			};
+		})
+		// keep rows that have at least one non-empty field
+		.filter(row => Object.values(row).some(v => (v||'').toString().trim() !== ''));
+}
 
-// Hook add-more buttons and augment saveEmployee to include JSON arrays
-document.addEventListener('click', function(e){
-	if(e.target && e.target.id==='addEducationRow') addEducationRow();
-	if(e.target && e.target.id==='addEmploymentRow') addEmploymentRow();
-});
+// Hook add-more buttons (guard to avoid duplicate listeners if script loads twice)
+if (!window.__employeeRowHandlersAttached) {
+	window.__employeeRowHandlersAttached = true;
+	document.addEventListener('click', function(e){
+		if(e.target && e.target.id==='addEducationRow') addEducationRow();
+		if(e.target && e.target.id==='addEmploymentRow') addEmploymentRow();
+	});
+}
 
 // Override saveEmployee to inject nested arrays
 // Guard to avoid double-declaration when script is loaded twice
 if (!window.__employeeEnhancementsApplied) { window.__employeeEnhancementsApplied = true; }
 
 // Wrap saveEmployee only once
-if (!window.__saveEmployeeWrapped) {
-	window.__saveEmployeeWrapped = true;
-	window.saveEmployee = async function(){
+// Single saveEmployee definition that always sends education/employment arrays
+window.saveEmployee = async function(){
 	const form=document.getElementById('addEmployeeForm');
 	const params=new FormData(form);
 	const edu=collectEducation(); const emp=collectEmployment();
@@ -117,7 +168,6 @@ if (!window.__saveEmployeeWrapped) {
 		else window.CRUD && CRUD.toastError && CRUD.toastError('Save failed: '+(res.message||res.error||'Unknown'));
 	}catch(e){ window.CRUD && CRUD.toastError && CRUD.toastError('Request failed: '+e.message); }
 	finally{ window.CRUD && CRUD.modalLoadingStop && CRUD.modalLoadingStop(modalEl); }
-	}
 }
 
 // Photo preview and remove handling
