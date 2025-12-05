@@ -225,9 +225,21 @@ $branches = BranchController::getAll();
                         <div class="col-md-4"><input type="text" class="form-control" name="pincode" placeholder="Pincode"></div>
                         <div class="col-md-6"><input type="text" class="form-control" name="state" placeholder="State"></div>
                         <div class="col-md-6"><input type="text" class="form-control" name="country" placeholder="Country"></div>
-                        <div class="col-md-6"><input type="text" class="form-control" name="aadhar_card" placeholder="Aadhar Card"></div>
-                        <div class="col-md-6"><input type="text" class="form-control" name="pan_card" placeholder="PAN Card"></div>
-                        <div class="col-md-6"><input type="text" class="form-control" name="passport" placeholder="Passport"></div>
+                        <div class="col-md-6">
+                            <label class="form-label">Aadhar Card (Attachment)</label>
+                            <input type="file" class="form-control" name="aadhar_card" accept="image/*,application/pdf">
+                            <small id="aadharFileInfo" class="form-text text-muted" style="display:none;"></small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">PAN Card (Attachment)</label>
+                            <input type="file" class="form-control" name="pan_card" accept="image/*,application/pdf">
+                            <small id="panFileInfo" class="form-text text-muted" style="display:none;"></small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Passport (Attachment)</label>
+                            <input type="file" class="form-control" name="passport" accept="image/*,application/pdf">
+                            <small id="passportFileInfo" class="form-text text-muted" style="display:none;"></small>
+                        </div>
                     </div>
                     <hr>
                     <h6>Educational Details</h6>

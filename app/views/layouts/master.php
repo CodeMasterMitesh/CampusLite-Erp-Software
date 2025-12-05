@@ -31,7 +31,7 @@ $bodyClass = 'app-page-' . preg_replace('/[^a-z0-9_-]+/i', '-', (string) $pageKe
 <body class="h-100 <?= htmlspecialchars($bodyClass) ?>">
     <div class="app-shell d-flex flex-column min-vh-100">
         <?php include __DIR__ . '/../partials/nav.php'; ?>
-        <main id="app-main" class="flex-grow-1 container-fluid py-4" data-page="<?= htmlspecialchars($pageKey) ?>">
+        <main id="app-main" class="flex-grow-1 container-fluid pb-4" data-page="<?= htmlspecialchars($pageKey) ?>">
             <?= $contentForLayout ?? '' ?>
         </main>
         <?php include __DIR__ . '/../partials/footer.php'; ?>

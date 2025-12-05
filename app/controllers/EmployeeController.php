@@ -23,7 +23,20 @@ class EmployeeController {
         global $conn;
         $id = intval($id);
         $res = mysqli_query($conn, "SELECT * FROM users WHERE id = $id AND role='employee' LIMIT 1");
-        return mysqli_fetch_assoc($res) ?: null;
+        $row = mysqli_fetch_assoc($res) ?: null;
+        if (!$row) return null;
+        // Attach education and employment details
+        $edus = [];
+        if ($q = mysqli_query($conn, "SELECT degree, institute, from_date, to_date, grade, specialization FROM employee_education WHERE employee_id = $id ORDER BY id")) {
+            while ($r = mysqli_fetch_assoc($q)) $edus[] = $r;
+        }
+        $emps = [];
+        if ($q = mysqli_query($conn, "SELECT organisation, designation, from_date, to_date, annual_ctc FROM employee_employment WHERE employee_id = $id ORDER BY id")) {
+            while ($r = mysqli_fetch_assoc($q)) $emps[] = $r;
+        }
+        $row['education'] = $edus;
+        $row['employment'] = $emps;
+        return $row;
     }
     public static function create($data) {
         global $conn;
@@ -56,12 +69,13 @@ class EmployeeController {
         $aadhar_card = $data['aadhar_card'] ?? null;
         $pan_card = $data['pan_card'] ?? null;
         $passport = $data['passport'] ?? null;
-        mysqli_stmt_bind_param($stmt, 'sssii' . str_repeat('s', 17) . 'i',
-            $name, $email, $mobile, $is_part_time, $status,
+        // Types: i (branch) + ssss (name,email,password,mobile) + ii (is_part_time,status) + 17s (remaining string fields)
+        mysqli_stmt_bind_param($stmt, 'issssii' . str_repeat('s', 17),
+            $branch_id, $name, $email, $password, $mobile, $is_part_time, $status,
             $profile_photo, $dob, $gender, $marital_status,
             $joining_date, $resign_date, $in_time, $out_time,
             $address, $area, $city, $pincode, $state, $country,
-            $aadhar_card, $pan_card, $passport, $user_id
+            $aadhar_card, $pan_card, $passport
         );
         $ok = mysqli_stmt_execute($stmt);
         if (!$ok) return false;
@@ -72,6 +86,8 @@ class EmployeeController {
     }
     public static function update($id, $data) {
         global $conn;
+        // debug($data);
+        // exit;
         // Normalize nested arrays if provided as JSON strings
         if (isset($data['education']) && is_string($data['education'])) {
             $dec = json_decode($data['education'], true);
@@ -108,7 +124,7 @@ class EmployeeController {
         $pan_card = $data['pan_card'] ?? null;
         $passport = $data['passport'] ?? null;
         $user_id = $id;
-        mysqli_stmt_bind_param($stmt, 'sssiisssssssssssssssssi',
+        mysqli_stmt_bind_param($stmt, 'sssii' . str_repeat('s', 17) . 'i',
             $name, $email, $mobile, $is_part_time, $status,
             $profile_photo, $dob, $gender, $marital_status,
             $joining_date, $resign_date, $in_time, $out_time,
@@ -144,7 +160,13 @@ class EmployeeController {
         if (!is_array($items)) return;
         foreach ($items as $it) {
             $stmt = mysqli_prepare($conn, "INSERT INTO employee_education (employee_id, degree, institute, from_date, to_date, grade, specialization) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, 'issssss', $employeeId, $it['degree'] ?? '', $it['institute'] ?? '', $it['from_date'] ?? null, $it['to_date'] ?? null, $it['grade'] ?? null, $it['specialization'] ?? null);
+            $deg = $it['degree'] ?? '';
+            $inst = $it['institute'] ?? '';
+            $from = $it['from_date'] ?? null;
+            $to = $it['to_date'] ?? null;
+            $grade = $it['grade'] ?? null;
+            $spec = $it['specialization'] ?? null;
+            mysqli_stmt_bind_param($stmt, 'issssss', $employeeId, $deg, $inst, $from, $to, $grade, $spec);
             mysqli_stmt_execute($stmt);
         }
     }
@@ -154,7 +176,12 @@ class EmployeeController {
         if (!is_array($items)) return;
         foreach ($items as $it) {
             $stmt = mysqli_prepare($conn, "INSERT INTO employee_employment (employee_id, organisation, designation, from_date, to_date, annual_ctc) VALUES (?, ?, ?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, 'issssd', $employeeId, $it['organisation'] ?? '', $it['designation'] ?? '', $it['from_date'] ?? null, $it['to_date'] ?? null, $it['annual_ctc'] ?? null);
+            $org = $it['organisation'] ?? '';
+            $des = $it['designation'] ?? '';
+            $from = $it['from_date'] ?? null;
+            $to = $it['to_date'] ?? null;
+            $ctc = $it['annual_ctc'] ?? null;
+            mysqli_stmt_bind_param($stmt, 'issssd', $employeeId, $org, $des, $from, $to, $ctc);
             mysqli_stmt_execute($stmt);
         }
     }

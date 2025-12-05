@@ -47,6 +47,8 @@ try {
         case 'update':
             $id = intval($_POST['id'] ?? 0);
             $data = $_POST;
+            // Preserve existing document fields if not re-uploaded
+            $existing = EmployeeController::get($id);
             if (!empty($_FILES['profile_photo']['name'])) {
                 $dir = __DIR__ . '/../public/uploads/employees';
                 if (!is_dir($dir)) @mkdir($dir, 0777, true);
@@ -55,6 +57,24 @@ try {
                 $dest = $dir . '/' . $safe;
                 if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $dest)) {
                     $data['profile_photo'] = $safe;
+                }
+            } else if ($existing && isset($existing['profile_photo'])) {
+                $data['profile_photo'] = $existing['profile_photo'];
+            }
+            // Handle ID document uploads: aadhar_card, pan_card, passport
+            $docDir = __DIR__ . '/../public/uploads/employees';
+            if (!is_dir($docDir)) @mkdir($docDir, 0777, true);
+            foreach (['aadhar_card','pan_card','passport'] as $doc) {
+                if (!empty($_FILES[$doc]['name'])) {
+                    $ext = pathinfo($_FILES[$doc]['name'], PATHINFO_EXTENSION);
+                    if ($ext === '') $ext = 'bin';
+                    $safe = uniqid($doc.'_') . '.' . strtolower($ext);
+                    $dest = $docDir . '/' . $safe;
+                    if (move_uploaded_file($_FILES[$doc]['tmp_name'], $dest)) {
+                        $data[$doc] = $safe;
+                    }
+                } else if ($existing && isset($existing[$doc])) {
+                    $data[$doc] = $existing[$doc];
                 }
             }
             foreach (['education','employment'] as $k) {
