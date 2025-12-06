@@ -35,6 +35,31 @@ $bodyClass = 'app-page-' . preg_replace('/[^a-z0-9_-]+/i', '-', (string) $pageKe
             <?= $contentForLayout ?? '' ?>
         </main>
         <?php include __DIR__ . '/../partials/footer.php'; ?>
+        <?php include __DIR__ . '/../partials/modals.php'; ?>
+    </div>
+
+    <!-- Shared media preview modal for photos/docs -->
+    <div class="modal fade" id="mediaPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mediaPreviewTitle">Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="mediaPreviewBody" class="d-flex justify-content-center align-items-center" style="min-height:320px;">
+                        <div class="text-muted" id="mediaPreviewPlaceholder">Select a file to preview</div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <small class="text-muted" id="mediaPreviewMeta"></small>
+                    <div class="d-flex gap-2">
+                        <a id="mediaPreviewOpenOriginal" class="btn btn-outline-primary" href="#" target="_blank" rel="noopener">Open original</a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

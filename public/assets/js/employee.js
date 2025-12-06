@@ -74,7 +74,95 @@ async function editEmployee(id){
 	finally{ window.CRUD && CRUD.hideLoading && CRUD.hideLoading(); }
 }
 
-async function viewEmployee(id){ if(window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer'); try{ const res=await CRUD.get(`api/employee.php?action=get&id=${encodeURIComponent(id)}`); if(res.success&&res.data){ const e=res.data; document.getElementById('employeeId').value=e.id||''; document.querySelector('#addEmployeeForm [name="name"]').value=e.name||''; document.querySelector('#addEmployeeForm [name="email"]').value=e.email||''; document.querySelector('#addEmployeeForm [name="phone"]').value=e.mobile||e.phone||''; document.getElementById('employeeBranch') && (document.getElementById('employeeBranch').value=e.branch_id||0); const form=document.getElementById('addEmployeeForm'); if(form) Array.from(form.elements).forEach(el=>el.disabled=true); const saveBtn=document.querySelector('#addEmployeeModal .btn-primary'); if(saveBtn) saveBtn.style.display='none'; document.querySelector('#addEmployeeModal .modal-title') && (document.querySelector('#addEmployeeModal .modal-title').innerText='View Employee'); bootstrap.Modal.getOrCreateInstance(document.getElementById('addEmployeeModal')).show(); } else { window.CRUD && CRUD.toastError && CRUD.toastError('Employee not found'); } }catch(e){ window.CRUD && CRUD.toastError && CRUD.toastError('Failed: '+e.message); } finally{ window.CRUD && CRUD.hideLoading && CRUD.hideLoading(); } }
+async function viewEmployee(id){
+	if(window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer');
+	try{
+		const form = document.getElementById('addEmployeeForm');
+		const modalEl = document.getElementById('addEmployeeModal');
+		if (!form || !modalEl) { window.CRUD && CRUD.toastError && CRUD.toastError('Employee form not available'); return; }
+
+		const res=await CRUD.get(`api/employee.php?action=get&id=${encodeURIComponent(id)}`);
+		if(res.success&&res.data){
+			const e=res.data;
+			const setVal = (sel,val)=>{ const el=document.querySelector(sel); if(el){ if (el.type === 'file') { el.value=''; } else { el.value = val ?? ''; } } };
+			const setSelVal = (id,val)=>{ const el=document.getElementById(id); if(el) el.value = val ?? ''; };
+			const setDate = (sel,val)=>{ const el=document.querySelector(sel); if(el) el.value = (val||'').slice(0,10); };
+
+			// reset state
+			form.reset();
+			const photoImg = document.getElementById('employeePhotoPreview'); if (photoImg) { photoImg.src=''; photoImg.style.display='none'; }
+			const removeBtn = document.getElementById('removeEmployeePhoto'); if (removeBtn) removeBtn.style.display='none';
+			['aadharFileInfo','panFileInfo','passportFileInfo'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=''; el.style.display='none'; } });
+			const eduWrap = document.getElementById('educationList'); if (eduWrap) eduWrap.innerHTML='';
+			const empWrap = document.getElementById('employmentList'); if (empWrap) empWrap.innerHTML='';
+
+			setSelVal('employeeId', e.id);
+			setVal('#addEmployeeForm [name="name"]', e.name);
+			setVal('#addEmployeeForm [name="email"]', e.email);
+			setVal('#addEmployeeForm [name="mobile"]', e.mobile||e.phone);
+			setSelVal('employeeBranch', e.branch_id||0);
+			setDate('#addEmployeeForm [name="dob"]', e.dob);
+			setVal('#addEmployeeForm [name="gender"]', e.gender);
+			setVal('#addEmployeeForm [name="marital_status"]', e.marital_status);
+			setDate('#addEmployeeForm [name="joining_date"]', e.joining_date);
+			setDate('#addEmployeeForm [name="resign_date"]', e.resign_date);
+			setVal('#addEmployeeForm [name="in_time"]', e.in_time);
+			setVal('#addEmployeeForm [name="out_time"]', e.out_time);
+			setVal('#addEmployeeForm [name="address"]', e.address);
+			setVal('#addEmployeeForm [name="area"]', e.area);
+			setVal('#addEmployeeForm [name="city"]', e.city);
+			setVal('#addEmployeeForm [name="pincode"]', e.pincode);
+			setVal('#addEmployeeForm [name="state"]', e.state);
+			setVal('#addEmployeeForm [name="country"]', e.country);
+
+			// photo preview
+			const img = document.getElementById('employeePhotoPreview');
+			if (img) {
+				if (e.profile_photo) { img.src = '/public/uploads/employees/' + e.profile_photo; img.style.display='block'; }
+				else { img.src=''; img.style.display='none'; }
+			}
+			// document info display
+			const setDocInfo = (id, filename)=>{
+				const el=document.getElementById(id); if(!el) return;
+				if(filename){
+					const url = '/public/uploads/employees/' + filename;
+					el.innerHTML = `Existing: <a href="${url}" target="_blank" rel="noopener">${filename}</a>`;
+					el.style.display='';
+				} else { el.textContent=''; el.style.display='none'; }
+			};
+			setDocInfo('aadharFileInfo', e.aadhar_card);
+			setDocInfo('panFileInfo', e.pan_card);
+			setDocInfo('passportFileInfo', e.passport);
+
+			// education/employment lists
+			const eduWrapView = document.getElementById('educationList');
+			if (eduWrapView) {
+				eduWrapView.innerHTML = '';
+				if (Array.isArray(e.education) && e.education.length) {
+					e.education.forEach(item => addEducationRow(item));
+				} else {
+					addEducationRow();
+				}
+			}
+			const empWrapView = document.getElementById('employmentList');
+			if (empWrapView) {
+				empWrapView.innerHTML = '';
+				if (Array.isArray(e.employment) && e.employment.length) {
+					e.employment.forEach(item => addEmploymentRow(item));
+				} else {
+					addEmploymentRow();
+				}
+			}
+
+			// disable form for view mode
+			Array.from(form.elements).forEach(el=>el.disabled=true);
+			const saveBtn=document.querySelector('#addEmployeeModal .btn-primary'); if(saveBtn) saveBtn.style.display='none';
+			const titleEl=document.querySelector('#addEmployeeModal .modal-title'); if(titleEl) titleEl.innerText='View Employee';
+			bootstrap.Modal.getOrCreateInstance(modalEl).show();
+		} else { window.CRUD && CRUD.toastError && CRUD.toastError('Employee not found'); }
+	}catch(e){ window.CRUD && CRUD.toastError && CRUD.toastError('Failed: '+e.message); }
+	finally{ window.CRUD && CRUD.hideLoading && CRUD.hideLoading(); }
+}
 
 async function deleteEmployee(id){ if(!confirm('Delete employee '+id+'?')) return; if(window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer'); try{ const p=new URLSearchParams(); p.append('id', id); const res=await CRUD.post('api/employee.php?action=delete', p); if(res.success){ window.CRUD && CRUD.toastSuccess && CRUD.toastSuccess('Deleted'); refreshTable(); } else window.CRUD && CRUD.toastError && CRUD.toastError('Delete failed'); }catch(e){ window.CRUD && CRUD.toastError && CRUD.toastError('Delete failed: '+e.message);} finally{ window.CRUD && CRUD.hideLoading && CRUD.hideLoading(); } }
 

@@ -35,6 +35,7 @@ $navSections = [
             ['label' => 'Courses', 'page' => 'courses', 'icon' => 'fa-book', 'roles' => ['super_admin', 'branch_admin']],
             ['label' => 'Batches', 'page' => 'batches', 'icon' => 'fa-layer-group', 'roles' => ['super_admin', 'branch_admin', 'faculty']],
             ['label' => 'Batch Assignments', 'page' => 'batch_assignments', 'icon' => 'fa-diagram-project', 'roles' => ['super_admin', 'branch_admin']],
+            ['label' => 'Schedule Batch', 'page' => 'schedule_batch', 'icon' => 'fa-calendar-days', 'roles' => ['super_admin', 'branch_admin', 'faculty']],
         ],
     ],
     [
@@ -67,17 +68,6 @@ $navSections = [
         'icon' => 'fa-chart-bar',
         'page' => 'reports',
         'roles' => ['super_admin', 'branch_admin'],
-    ],
-    [
-        'label' => 'Settings',
-        'icon' => 'fa-gear',
-        'roles' => ['super_admin', 'branch_admin'],
-        'children' => [
-            ['label' => 'Settings Home', 'page' => 'settings', 'icon' => 'fa-sliders', 'roles' => ['super_admin', 'branch_admin']],
-            ['label' => 'Company', 'page' => 'company', 'icon' => 'fa-building', 'roles' => ['super_admin']],
-            ['label' => 'Branches', 'page' => 'branches', 'icon' => 'fa-code-branch', 'roles' => ['super_admin', 'branch_admin']],
-            ['label' => 'Users', 'page' => 'users', 'icon' => 'fa-users-gear', 'roles' => ['super_admin']],
-        ],
     ],
 ];
 
