@@ -5,6 +5,8 @@ namespace CampusLite\Controllers;
 if (!defined('APP_INIT')) { http_response_code(403); exit('Forbidden'); }
 // app/controllers/StudentController.php
 require_once __DIR__ . '/../../config/db.php';
+// optional cache helpers
+if (file_exists(__DIR__ . '/../helpers/cache.php')) require_once __DIR__ . '/../helpers/cache.php';
 if (!isset($GLOBALS['conn']) || !($GLOBALS['conn'] instanceof \mysqli)) {
     $GLOBALS['conn'] = \db_conn();
 }
@@ -59,7 +61,7 @@ class StudentController {
     public static function create($data) {
         global $conn;
         // Insert student
-        $stmt = mysqli_prepare($conn, "INSERT INTO students (branch_id, name, email, mobile, dob, education, college_name, father_name, address, pincode, state, city, area, registration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = mysqli_prepare($conn, "INSERT INTO students (branch_id, name, email, profile_photo, mobile, dob, education, college_name, father_name, address, pincode, state, city, area, registration_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         if (!$stmt) {
             error_log('StudentController::create prepare failed: ' . mysqli_error($conn));
             return false;
@@ -68,6 +70,7 @@ class StudentController {
         $branch_id = isset($data['branch_id']) ? intval($data['branch_id']) : 0;
         $name = $data['name'] ?? '';
         $email = $data['email'] ?? '';
+        $profile_photo = $data['profile_photo'] ?? null;
         $mobile = $data['mobile'] ?? '';
         $dob = $data['dob'] ?? null;
         $education = $data['education'] ?? '';
@@ -81,12 +84,13 @@ class StudentController {
         $registration_date = $data['registration_date'] ?? date('Y-m-d');
         $status = ($data['status'] === 'active' || $data['status'] == 1) ? 1 : 0;
 
-        // bind: 15 params, types: i (branch), then 13 strings, then i (status)
-        $bindTypes = 'isssssssssssssi';
+        // bind: 16 params, types: i (branch), then 14 strings, then i (status)
+        $bindTypes = 'issssssssssssssi';
         mysqli_stmt_bind_param($stmt, $bindTypes,
             $branch_id,
             $name,
             $email,
+            $profile_photo,
             $mobile,
             $dob,
             $education,
@@ -102,6 +106,7 @@ class StudentController {
         );
         $ok = mysqli_stmt_execute($stmt);
         if ($ok) {
+            if (function_exists('cache_delete')) cache_delete('students_all_v1');
             $student_id = mysqli_insert_id($conn);
             // Handle course mapping
             if (!empty($data['courses']) && is_array($data['courses'])) {
@@ -119,25 +124,40 @@ class StudentController {
     public static function update($id, $data) {
         global $conn;
         $status = ($data['status'] === 'active' || $data['status'] == 1) ? 1 : 0;
-        $stmt = mysqli_prepare($conn, "UPDATE students SET name=?, email=?, mobile=?, dob=?, education=?, college_name=?, father_name=?, address=?, pincode=?, state=?, city=?, area=?, status=? WHERE id=?");
-        mysqli_stmt_bind_param($stmt, 'ssssssssssssii',
-            $data['name'],
-            $data['email'],
-            $data['mobile'],
-            $data['dob'],
-            $data['education'],
-            $data['college_name'],
-            $data['father_name'],
-            $data['address'],
-            $data['pincode'],
-            $data['state'],
-            $data['city'],
-            $data['area'],
+        $stmt = mysqli_prepare($conn, "UPDATE students SET name=?, email=?, profile_photo=?, mobile=?, dob=?, education=?, college_name=?, father_name=?, address=?, pincode=?, state=?, city=?, area=?, status=? WHERE id=?");
+        $photo = $data['profile_photo'] ?? null;
+        $name = $data['name'];
+        $email = $data['email'];
+        $mobile = $data['mobile'];
+        $dob = $data['dob'];
+        $education = $data['education'];
+        $college = $data['college_name'];
+        $father = $data['father_name'];
+        $address = $data['address'];
+        $pincode = $data['pincode'];
+        $state = $data['state'];
+        $city = $data['city'];
+        $area = $data['area'];
+        mysqli_stmt_bind_param($stmt, 'sssssssssssssii',
+            $name,
+            $email,
+            $photo,
+            $mobile,
+            $dob,
+            $education,
+            $college,
+            $father,
+            $address,
+            $pincode,
+            $state,
+            $city,
+            $area,
             $status,
             $id
         );
         $ok = mysqli_stmt_execute($stmt);
         if ($ok) {
+            if (function_exists('cache_delete')) cache_delete('students_all_v1');
             // Update course mapping: remove old, insert new
             $delStmt = mysqli_prepare($conn, "DELETE FROM student_courses WHERE student_id = ?");
             mysqli_stmt_bind_param($delStmt, 'i', $id);
@@ -157,9 +177,17 @@ class StudentController {
     public static function delete($id) {
         global $conn;
         $id = intval($id);
+        // delete stored photo if present
+        $existing = self::get($id);
+        if ($existing && !empty($existing['profile_photo'])) {
+            $path = __DIR__ . '/../../public/uploads/students/' . basename($existing['profile_photo']);
+            if (is_file($path)) @unlink($path);
+        }
         $stmt = mysqli_prepare($conn, "DELETE FROM students WHERE id = ?");
         mysqli_stmt_bind_param($stmt, 'i', $id);
-        return mysqli_stmt_execute($stmt);
+        $ok = mysqli_stmt_execute($stmt);
+        if ($ok && function_exists('cache_delete')) cache_delete('students_all_v1');
+        return $ok;
     }
 }
 ?>

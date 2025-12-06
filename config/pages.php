@@ -64,6 +64,11 @@ return [
         'title' => 'Batch Assignments',
         'roles' => $roles['admin'],
     ],
+    'schedule_batch' => [
+        'view' => __DIR__ . '/../app/views/schedule_batch.php',
+        'title' => 'Schedule Batch',
+        'roles' => $roles['staff'],
+    ],
     'attendance' => [
         'view' => __DIR__ . '/../app/views/attendance.php',
         'title' => 'Attendance',

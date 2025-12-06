@@ -10,6 +10,10 @@ $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] :
 $totalEmployees = count($employees);
 $totalPages = 1;
 $branches = BranchController::getAll();
+$branchMap = [];
+foreach ($branches as $b) {
+    $branchMap[intval($b['id'])] = $b['name'] ?? ($b['branch'] ?? '');
+}
 ?>
 
 <div class="container-fluid dashboard-container fade-in">
@@ -35,10 +39,15 @@ $branches = BranchController::getAll();
                 <thead>
                     <tr>
                         <th width="80">ID</th>
+                        <th width="90">Photo</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Branch</th>
+                        <th>Gender</th>
+                        <th>Joining</th>
+                        <th>In/Out</th>
+                        <th>Docs</th>
                         <th>Status</th>
                         <th width="150" class="text-center">Actions</th>
                     </tr>
@@ -46,7 +55,7 @@ $branches = BranchController::getAll();
                 <tbody id="tableBody">
                     <?php if (empty($employees)): ?>
                         <tr>
-                            <td colspan="7">
+                            <td colspan="12">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No employees found</h4>
@@ -61,15 +70,42 @@ $branches = BranchController::getAll();
                         <?php foreach ($employees as $employee): ?>
                             <tr>
                                 <td><?= htmlspecialchars($employee['id'] ?? '') ?></td>
+                                <td>
+                                    <?php if (!empty($employee['profile_photo'])): ?>
+                                        <a href="/public/uploads/employees/<?= htmlspecialchars($employee['profile_photo']) ?>" class="media-preview-link" data-preview-url="/public/uploads/employees/<?= htmlspecialchars($employee['profile_photo']) ?>" data-preview-title="Employee Photo - <?= htmlspecialchars($employee['name'] ?? '') ?>" data-preview-type="image">
+                                            <img src="/public/uploads/employees/<?= htmlspecialchars($employee['profile_photo']) ?>" alt="Photo" style="width:48px;height:48px;object-fit:cover;border-radius:6px;">
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($employee['name'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($employee['email'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($employee['phone'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($employee['branch'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($employee['mobile'] ?? $employee['phone'] ?? '') ?></td>
+                                <td>
+                                    <?php
+                                    $bid = $employee['branch_id'] ?? null;
+                                    $branchName = '';
+                                    if ($bid && isset($branchMap[$bid])) {
+                                        $branchName = $branchMap[$bid];
+                                    } elseif (!empty($employee['branch'])) {
+                                        $branchName = $employee['branch'];
+                                    }
+                                    echo htmlspecialchars($branchName);
+                                    ?>
+                                </td>
+                                <td><?= htmlspecialchars($employee['gender'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($employee['joining_date'] ?? '') ?></td>
+                                <td><?php echo htmlspecialchars(($employee['in_time'] ?? '') . ' / ' . ($employee['out_time'] ?? '')); ?></td>
+                                <td>
+                                    <?php if (!empty($employee['aadhar_card'])): ?><a href="/public/uploads/employees/<?= htmlspecialchars($employee['aadhar_card']) ?>" class="media-preview-link" data-preview-url="/public/uploads/employees/<?= htmlspecialchars($employee['aadhar_card']) ?>" data-preview-title="Aadhar - <?= htmlspecialchars($employee['name'] ?? '') ?>" title="Aadhar"><i class="fas fa-id-card"></i></a><?php endif; ?>
+                                    <?php if (!empty($employee['pan_card'])): ?><a href="/public/uploads/employees/<?= htmlspecialchars($employee['pan_card']) ?>" class="media-preview-link ms-2" data-preview-url="/public/uploads/employees/<?= htmlspecialchars($employee['pan_card']) ?>" data-preview-title="PAN - <?= htmlspecialchars($employee['name'] ?? '') ?>" title="PAN"><i class="fas fa-address-card"></i></a><?php endif; ?>
+                                    <?php if (!empty($employee['passport'])): ?><a href="/public/uploads/employees/<?= htmlspecialchars($employee['passport']) ?>" class="media-preview-link ms-2" data-preview-url="/public/uploads/employees/<?= htmlspecialchars($employee['passport']) ?>" data-preview-title="Passport - <?= htmlspecialchars($employee['name'] ?? '') ?>" title="Passport"><i class="fas fa-passport"></i></a><?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if (isset($employee['status'])): ?>
-                                        <span class="status-badge <?= $employee['status'] === 'active' ? 'status-active' : 'status-inactive' ?>">
-                                            <?= ucfirst($employee['status']) ?>
-                                        </span>
+                                        <?php $isActive = ($employee['status'] === 'active' || intval($employee['status']) === 1); $statusLabel = $isActive ? 'Active' : 'Inactive'; ?>
+                                        <span class="status-badge <?= $isActive ? 'status-active' : 'status-inactive' ?>"><?= $statusLabel ?></span>
                                     <?php else: ?>
                                         <span class="status-badge status-inactive">N/A</span>
                                     <?php endif; ?>

@@ -39,6 +39,7 @@ foreach ($branches as $b) {
                     <tr>
                         <th width="40" class="text-center"><input type="checkbox" id="select-all-faculty"></th>
                         <th width="80">ID</th>
+                        <th width="90">Photo</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
@@ -54,7 +55,7 @@ foreach ($branches as $b) {
                 <tbody id="tableBody">
                     <?php if (empty($faculty)): ?>
                         <tr>
-                            <td colspan="12">
+                            <td colspan="13">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No faculty found</h4>
@@ -70,6 +71,15 @@ foreach ($branches as $b) {
                             <tr>
                                 <td class="text-center" data-label="Select"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($f['id'] ?? '') ?>"></td>
                                 <td data-label="ID"><?= htmlspecialchars($f['id'] ?? '') ?></td>
+                                <td data-label="Photo">
+                                    <?php if (!empty($f['profile_photo'])): ?>
+                                        <a href="/public/uploads/faculty/<?= htmlspecialchars($f['profile_photo']) ?>" class="media-preview-link" data-preview-url="/public/uploads/faculty/<?= htmlspecialchars($f['profile_photo']) ?>" data-preview-title="Faculty Photo - <?= htmlspecialchars($f['name'] ?? '') ?>" data-preview-type="image">
+                                            <img src="/public/uploads/faculty/<?= htmlspecialchars($f['profile_photo']) ?>" alt="Photo" style="width:48px;height:48px;object-fit:cover;border-radius:6px;">
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td data-label="Name"><?= htmlspecialchars($f['name'] ?? '') ?></td>
                                 <td data-label="Email"><?= htmlspecialchars($f['email'] ?? '') ?></td>
                                 <td data-label="Phone"><?= htmlspecialchars($f['mobile'] ?? ($f['phone'] ?? '')) ?></td>
@@ -78,9 +88,9 @@ foreach ($branches as $b) {
                                 <td data-label="Joining"><?= htmlspecialchars($f['joining_date'] ?? '') ?></td>
                                 <td data-label="In/Out"><?php echo htmlspecialchars(($f['in_time'] ?? '') . ' / ' . ($f['out_time'] ?? '')); ?></td>
                                 <td data-label="Docs">
-                                    <?php if (!empty($f['aadhar_card'])): ?><a href="/public/uploads/faculty/<?= htmlspecialchars($f['aadhar_card']) ?>" target="_blank" title="Aadhar"><i class="fas fa-id-card"></i></a><?php endif; ?>
-                                    <?php if (!empty($f['pan_card'])): ?><a href="/public/uploads/faculty/<?= htmlspecialchars($f['pan_card']) ?>" target="_blank" class="ms-2" title="PAN"><i class="fas fa-address-card"></i></a><?php endif; ?>
-                                    <?php if (!empty($f['passport'])): ?><a href="/public/uploads/faculty/<?= htmlspecialchars($f['passport']) ?>" target="_blank" class="ms-2" title="Passport"><i class="fas fa-passport"></i></a><?php endif; ?>
+                                    <?php if (!empty($f['aadhar_card'])): ?><a href="/public/uploads/faculty/<?= htmlspecialchars($f['aadhar_card']) ?>" class="media-preview-link" data-preview-url="/public/uploads/faculty/<?= htmlspecialchars($f['aadhar_card']) ?>" data-preview-title="Aadhar - <?= htmlspecialchars($f['name'] ?? '') ?>" title="Aadhar"><i class="fas fa-id-card"></i></a><?php endif; ?>
+                                    <?php if (!empty($f['pan_card'])): ?><a href="/public/uploads/faculty/<?= htmlspecialchars($f['pan_card']) ?>" class="media-preview-link ms-2" data-preview-url="/public/uploads/faculty/<?= htmlspecialchars($f['pan_card']) ?>" data-preview-title="PAN - <?= htmlspecialchars($f['name'] ?? '') ?>" title="PAN"><i class="fas fa-address-card"></i></a><?php endif; ?>
+                                    <?php if (!empty($f['passport'])): ?><a href="/public/uploads/faculty/<?= htmlspecialchars($f['passport']) ?>" class="media-preview-link ms-2" data-preview-url="/public/uploads/faculty/<?= htmlspecialchars($f['passport']) ?>" data-preview-title="Passport - <?= htmlspecialchars($f['name'] ?? '') ?>" title="Passport"><i class="fas fa-passport"></i></a><?php endif; ?>
                                 </td>
                                 <td data-label="Status">
                                     <?php if (isset($f['status'])): ?>

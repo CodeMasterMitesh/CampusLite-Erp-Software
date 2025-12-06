@@ -50,6 +50,7 @@ try {
             break;
         case 'create':
             $data = $_POST;
+            handle_student_uploads($data, null);
             $ok = StudentController::create($data);
             if ($ok) send_json(true, 'Student created');
             else send_json(false, 'Failed to create student');
@@ -57,9 +58,24 @@ try {
         case 'update':
             $id = intval($_POST['id'] ?? 0);
             $data = $_POST;
+            $existing = StudentController::get($id);
+            handle_student_uploads($data, $existing);
             $ok = StudentController::update($id, $data);
             if ($ok) send_json(true, 'Student updated');
             else send_json(false, 'Failed to update student');
+            break;
+        case 'delete-photo':
+            $id = intval($_POST['id'] ?? 0);
+            $row = StudentController::get($id);
+            if ($row && !empty($row['profile_photo'])) {
+                $path = __DIR__ . '/../public/uploads/students/' . basename($row['profile_photo']);
+                if (is_file($path)) @unlink($path);
+                $data = ['profile_photo' => null];
+                StudentController::update($id, $data);
+                send_json(true, 'Photo removed');
+            } else {
+                send_json(false, 'No photo');
+            }
             break;
         case 'delete':
             $id = intval($_POST['id'] ?? $_GET['id'] ?? 0);
@@ -72,4 +88,20 @@ try {
     }
 } catch (Exception $e) {
     send_json(false, 'Server error', null, ['exception' => $e->getMessage()]);
+}
+
+function handle_student_uploads(&$data, $existing) {
+    $dir = __DIR__ . '/../public/uploads/students';
+    if (!is_dir($dir)) @mkdir($dir, 0777, true);
+    if (!empty($_FILES['profile_photo']['name'])) {
+        $ext = pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION);
+        $ext = $ext ? strtolower($ext) : 'jpg';
+        $safe = uniqid('stu_') . '.' . $ext;
+        $dest = $dir . '/' . $safe;
+        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $dest)) {
+            $data['profile_photo'] = $safe;
+        }
+    } else if ($existing && isset($existing['profile_photo'])) {
+        $data['profile_photo'] = $existing['profile_photo'];
+    }
 }

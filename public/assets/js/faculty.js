@@ -38,6 +38,21 @@ function initFaculty() {
         addBtn.dataset.facultyPrepared = '1';
         addBtn.addEventListener('click', prepareAddFaculty);
     }
+
+    // Ensure declarative add buttons (data-modal-target) also reset the modal
+    const modalEl = document.getElementById('addFacultyModal');
+    if (modalEl && !modalEl.dataset.facultyResetBound) {
+        modalEl.dataset.facultyResetBound = '1';
+        modalEl.addEventListener('show.bs.modal', function () {
+            const mode = modalEl.dataset.mode;
+            if (mode === 'edit' || mode === 'view') return; // preserve edit/view state
+            prepareAddFaculty();
+            modalEl.dataset.mode = 'add';
+        });
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            modalEl.dataset.mode = '';
+        });
+    }
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initFaculty); else try { initFaculty(); } catch (e) { console.error('initFaculty immediate failed', e); }
@@ -142,7 +157,7 @@ function renderFacultyForm(f, mode = 'edit') {
     const img = document.getElementById('facultyPhotoPreview');
     const removeBtn = document.getElementById('removeFacultyPhoto');
     if (img) {
-        if (f.profile_photo) { img.src = FAC_UPLOAD_BASE + f.profile_photo; img.style.display = ''; if (removeBtn && mode !== 'view') removeBtn.style.display = ''; }
+        if (f.profile_photo) { img.src = FAC_UPLOAD_BASE + f.profile_photo; img.style.display = 'block'; if (removeBtn && mode !== 'view') removeBtn.style.display = ''; else if (removeBtn) removeBtn.style.display = 'none'; }
         else { clearPhotoPreview(); if (removeBtn) removeBtn.style.display = 'none'; }
     }
     const eduWrap = document.getElementById('facultyEducationList'); if (eduWrap) eduWrap.innerHTML = '';
@@ -153,6 +168,7 @@ function renderFacultyForm(f, mode = 'edit') {
     if (form) Array.from(form.elements).forEach(el => el.disabled = (mode === 'view'));
     const title = document.getElementById('facultyModalTitle'); if (title) title.innerText = mode === 'view' ? 'View Faculty' : 'Edit Faculty';
     const saveBtn = document.getElementById('saveFacultyBtn'); if (saveBtn) { saveBtn.style.display = mode === 'view' ? 'none' : ''; saveBtn.innerText = 'Update Faculty'; }
+    const modalEl = document.getElementById('addFacultyModal'); if (modalEl) modalEl.dataset.mode = mode;
     bootstrap.Modal.getOrCreateInstance(document.getElementById('addFacultyModal')).show();
 }
 
@@ -213,6 +229,7 @@ function prepareAddFaculty() {
     const empWrap = document.getElementById('facultyEmploymentList'); if (empWrap) { empWrap.innerHTML = ''; addFacultyEmploymentRow(); }
     const title = document.getElementById('facultyModalTitle'); if (title) title.innerText = 'Add New Faculty';
     const saveBtn = document.getElementById('saveFacultyBtn'); if (saveBtn) { saveBtn.innerText = 'Save Faculty'; saveBtn.style.display = ''; }
+    const modalEl = document.getElementById('addFacultyModal'); if (modalEl) modalEl.dataset.mode = 'add';
 }
 
 async function saveFaculty() {

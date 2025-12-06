@@ -19,7 +19,8 @@ if (!defined('APP_INIT')) {
                 </div>
             </div>
             <div class="modal-body">
-                <form id="addStudentForm">
+                <form id="addStudentForm" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
                     <input type="hidden" name="id" id="studentId" value="">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -33,6 +34,14 @@ if (!defined('APP_INIT')) {
                         <div class="col-md-4">
                             <label class="form-label">Phone</label>
                             <input type="tel" class="form-control soft-input" name="mobile" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Profile Photo</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <img id="studentPhotoPreview" src="" alt="Preview" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:none;">
+                                <input type="file" class="form-control soft-input" name="profile_photo" id="studentPhotoInput" accept="image/*">
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="removeStudentPhoto" style="display:none;">Remove</button>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Date of Birth</label>

@@ -39,6 +39,7 @@ foreach ($branches as $b) {
                     <tr>
                         <th width="40" class="text-center"><input type="checkbox" id="select-all-students"></th>
                         <th width="80">ID</th>
+                        <th width="90">Photo</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
@@ -50,7 +51,7 @@ foreach ($branches as $b) {
                 <tbody id="tableBody">
                     <?php if (empty($students)): ?>
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No students found</h4>
@@ -66,6 +67,15 @@ foreach ($branches as $b) {
                             <tr>
                                 <td class="text-center" data-label="Select"><input type="checkbox" class="row-select" data-id="<?= htmlspecialchars($student['id'] ?? '') ?>"></td>
                                 <td data-label="ID"><?= htmlspecialchars($student['id'] ?? '') ?></td>
+                                <td data-label="Photo">
+                                    <?php if (!empty($student['profile_photo'])): ?>
+                                        <a href="/public/uploads/students/<?= htmlspecialchars($student['profile_photo']) ?>" class="media-preview-link" data-preview-url="/public/uploads/students/<?= htmlspecialchars($student['profile_photo']) ?>" data-preview-title="Student Photo - <?= htmlspecialchars($student['name'] ?? '') ?>" data-preview-type="image">
+                                            <img src="/public/uploads/students/<?= htmlspecialchars($student['profile_photo']) ?>" alt="Photo" style="width:48px;height:48px;object-fit:cover;border-radius:6px;">
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted">N/A</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td data-label="Name"><?= htmlspecialchars($student['name'] ?? '') ?></td>
                                 <td data-label="Email"><?= htmlspecialchars($student['email'] ?? '') ?></td>
                                 <td data-label="Phone"><?= htmlspecialchars($student['mobile'] ?? $student['phone'] ?? '') ?></td>

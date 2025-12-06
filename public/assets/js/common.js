@@ -194,3 +194,83 @@ document.addEventListener('DOMContentLoaded', function(){
         console.warn('card animation init failed', err);
     }
 });
+
+// Shared media preview (images or PDFs) for photo/doc links
+(function initMediaPreview(){
+    const modalEl = document.getElementById('mediaPreviewModal');
+    if (!modalEl || typeof bootstrap === 'undefined') return;
+    const bodyEl = document.getElementById('mediaPreviewBody');
+    const titleEl = document.getElementById('mediaPreviewTitle');
+    const metaEl = document.getElementById('mediaPreviewMeta');
+    const openEl = document.getElementById('mediaPreviewOpenOriginal');
+    const placeholder = document.getElementById('mediaPreviewPlaceholder');
+
+    function inferType(url, explicit) {
+        if (explicit) return explicit;
+        const cleanUrl = (url || '').split('?')[0].split('#')[0];
+        const ext = cleanUrl.substring(cleanUrl.lastIndexOf('.') + 1).toLowerCase();
+        if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'image';
+        if (ext === 'pdf') return 'pdf';
+        return '';
+    }
+
+    function renderContent(url, type, title) {
+        if (!bodyEl) return;
+        bodyEl.innerHTML = '';
+        if (placeholder) placeholder.remove();
+        const resolvedType = inferType(url, type);
+        const filename = (url || '').split('/').pop();
+
+        if (titleEl) titleEl.textContent = title || 'Preview';
+        if (metaEl) metaEl.textContent = filename || '';
+        if (openEl) {
+            openEl.href = url;
+            openEl.style.display = url ? 'inline-flex' : 'none';
+        }
+
+        if (resolvedType === 'image') {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = title || 'Preview image';
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '80vh';
+            img.style.objectFit = 'contain';
+            img.className = 'shadow-sm rounded';
+            bodyEl.appendChild(img);
+            return true;
+        }
+
+        if (resolvedType === 'pdf') {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.title = title || 'Preview document';
+            iframe.style.width = '100%';
+            iframe.style.height = '80vh';
+            iframe.className = 'border rounded';
+            bodyEl.appendChild(iframe);
+            return true;
+        }
+
+        return false;
+    }
+
+    function handleClick(e) {
+        const link = e.target.closest && e.target.closest('.media-preview-link');
+        if (!link) return;
+        const url = link.getAttribute('data-preview-url') || link.getAttribute('href') || '';
+        if (!url) return;
+        e.preventDefault();
+        const type = link.getAttribute('data-preview-type') || '';
+        const title = link.getAttribute('data-preview-title') || 'Preview';
+
+        const rendered = renderContent(url, type, title);
+        if (!rendered) {
+            window.open(url, '_blank', 'noopener');
+            return;
+        }
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+
+    document.addEventListener('click', handleClick, true);
+})();
