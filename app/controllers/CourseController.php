@@ -45,11 +45,32 @@ class CourseController {
         }
         return $courses;
     }
-    public static function create($branch_id, $title, $description, $total_fee, $duration_months) {
+    public static function create($branch_id, $title, $description, $total_fee, $duration_months, $file_path = null, $file_name = null) {
         global $conn;
-        $stmt = mysqli_prepare($conn, "INSERT INTO courses (branch_id, title, description, total_fee, duration_months) VALUES (?, ?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, 'issdi', $branch_id, $title, $description, $total_fee, $duration_months);
+        $stmt = mysqli_prepare($conn, "INSERT INTO courses (branch_id, title, description, total_fee, duration_months, file_path, file_name) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        mysqli_stmt_bind_param($stmt, 'issdiss', $branch_id, $title, $description, $total_fee, $duration_months, $file_path, $file_name);
         return mysqli_stmt_execute($stmt);
+    }
+    
+    public static function update($id, $branch_id, $title, $description, $total_fee, $duration_months, $file_path = null, $file_name = null) {
+        global $conn;
+        if ($file_path !== null) {
+            $stmt = mysqli_prepare($conn, "UPDATE courses SET branch_id=?, title=?, description=?, total_fee=?, duration_months=?, file_path=?, file_name=? WHERE id=?");
+            mysqli_stmt_bind_param($stmt, 'issdissi', $branch_id, $title, $description, $total_fee, $duration_months, $file_path, $file_name, $id);
+        } else {
+            $stmt = mysqli_prepare($conn, "UPDATE courses SET branch_id=?, title=?, description=?, total_fee=?, duration_months=? WHERE id=?");
+            mysqli_stmt_bind_param($stmt, 'issdii', $branch_id, $title, $description, $total_fee, $duration_months, $id);
+        }
+        return mysqli_stmt_execute($stmt);
+    }
+    
+    public static function get($id) {
+        global $conn;
+        $stmt = mysqli_prepare($conn, "SELECT * FROM courses WHERE id = ?");
+        mysqli_stmt_bind_param($stmt, 'i', $id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        return mysqli_fetch_assoc($result);
     }
 }
 ?>

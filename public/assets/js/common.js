@@ -2,49 +2,84 @@
 function initAdvancedTable(tableSelector) {
     const table = $(tableSelector);
     if (!table.length) return null;
-    // Prevent reinitialization: if already a DataTable, reuse instance
+    
+    // Prevent reinitialization: if already a DataTable, destroy and recreate
     if ($.fn.DataTable && $.fn.DataTable.isDataTable && $.fn.DataTable.isDataTable(tableSelector)) {
-        return table.DataTable();
+        table.DataTable().destroy();
     }
+    
     const thead = table.find('thead');
-    // Avoid adding duplicate filter rows
-    if (!thead.find('tr.filters').length) {
-        const filterRow = $('<tr>').addClass('filters');
-        thead.find('tr').first().children().each(function() {
-            const th = $('<th>');
-            if ($(this).find('input[type="checkbox"]').length || $(this).text().trim() === 'Actions') {
-                th.html('');
-            } else {
-                th.html('<input type="text" class="form-control form-control-sm" placeholder="Search">');
-            }
-            filterRow.append(th);
-        });
-        thead.append(filterRow);
-    }
+    
+    // Remove existing filter row if any
+    thead.find('tr.filters').remove();
+    
+    // Add filter row
+    const filterRow = $('<tr>').addClass('filters');
+    const headerCells = thead.find('tr').first().children();
+    
+    headerCells.each(function() {
+        const th = $('<th>');
+        // Skip checkboxes and action columns
+        if ($(this).find('input[type="checkbox"]').length || 
+            $(this).text().trim().toLowerCase() === 'actions' ||
+            $(this).hasClass('no-filter')) {
+            th.html('');
+        } else {
+            th.html('<input type="text" class="form-control form-control-sm" placeholder="Search...">');
+        }
+        filterRow.append(th);
+    });
+    
+    thead.append(filterRow);
+    
+    // Initialize DataTable
     const dataTable = table.DataTable({ 
         dom: 'lrtip', 
-        orderCellsTop:true, 
-        fixedHeader:true, 
-        pageLength:10, 
-        lengthMenu:[10,25,50,100], 
+        orderCellsTop: true,
+        fixedHeader: true, 
+        pageLength: 10, 
+        lengthMenu: [10, 25, 50, 100], 
         responsive: false,
         scrollX: true,
         scrollCollapse: true,
         autoWidth: true,
         deferRender: true,
-        columnDefs:[
-            {orderable:false,targets:[0,-1]},
-            {responsivePriority: 1, targets: 0},
-            {responsivePriority: 2, targets: -1}
+        columnDefs: [
+            { orderable: false, targets: [0, -1] },
+            { responsivePriority: 1, targets: 0 },
+            { responsivePriority: 2, targets: -1 }
         ]
     });
-    try { dataTable.columns.adjust().draw(false); } catch(e) {}
-    try { window.addEventListener('resize', function(){ try { dataTable.columns.adjust(); } catch(e) {} }); } catch(e) {}
-    table.find('thead').off('keyup change', 'tr.filters input').on('keyup change', 'tr.filters input', function(){
-        const idx=$(this).closest('th').index();
-        const val=$(this).val();
-        if (dataTable.column(idx).search()!==val) dataTable.column(idx).search(val).draw();
+    
+    // Adjust columns
+    try { 
+        dataTable.columns.adjust().draw(false); 
+    } catch(e) { 
+        console.error('Column adjust failed:', e); 
+    }
+    
+    // Handle window resize
+    try { 
+        window.addEventListener('resize', function() { 
+            try { 
+                dataTable.columns.adjust(); 
+            } catch(e) {} 
+        }); 
+    } catch(e) {}
+    
+    // Setup column search with proper event delegation
+    thead.find('tr.filters th').each(function(index) {
+        const input = $(this).find('input');
+        if (input.length) {
+            input.off('keyup change').on('keyup change', function() {
+                const searchValue = this.value;
+                if (dataTable.column(index).search() !== searchValue) {
+                    dataTable.column(index).search(searchValue).draw();
+                }
+            });
+        }
     });
+    
     return dataTable;
 }
 

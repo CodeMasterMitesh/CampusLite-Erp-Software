@@ -20,21 +20,31 @@ try {
             echo json_encode(['success'=>(bool)$row,'data'=>$row]);
             break;
         case 'create':
-            // accept multiple user_ids as a single assignment row (stored as JSON in user_ids)
+            // accept multiple user_ids as a single assignment row
             $batch_id = intval($_POST['batch_id'] ?? 0);
             $role = $_POST['role'] ?? 'faculty';
             $assigned_at = $_POST['assigned_at'] ?? date('Y-m-d H:i:s');
-            $subjects = isset($_POST['subjects']) ? $_POST['subjects'] : null;
             $students_ids = [];
             if (isset($_POST['students_ids']) && is_array($_POST['students_ids'])) {
-                $students_ids = array_map('intval', $_POST['students_ids']);
+                $students_ids = array_map('intval', array_filter($_POST['students_ids']));
             } elseif (isset($_POST['user_ids']) && is_array($_POST['user_ids'])) {
                 // fallback from older name
-                $students_ids = array_map('intval', $_POST['user_ids']);
+                $students_ids = array_map('intval', array_filter($_POST['user_ids']));
             } elseif (!empty($_POST['user_id'])) {
                 $students_ids = [ intval($_POST['user_id']) ];
             }
-            $data = [ 'batch_id' => $batch_id, 'user_id' => (count($students_ids)?intval($students_ids[0]):0), 'students_ids' => $students_ids, 'role' => $role, 'subjects' => $subjects, 'assigned_at' => $assigned_at ];
+            $subject_ids = [];
+            if (isset($_POST['subjects']) && is_array($_POST['subjects'])) {
+                $subject_ids = array_map('intval', array_filter($_POST['subjects']));
+            }
+            $data = [ 
+                'batch_id' => $batch_id, 
+                'user_id' => (count($students_ids)?intval($students_ids[0]):0), 
+                'students_ids' => $students_ids, 
+                'subject_ids' => $subject_ids,
+                'role' => $role, 
+                'assigned_at' => $assigned_at 
+            ];
             $ok = BatchAssignmentController::create($data);
             echo json_encode(['success'=>(bool)$ok]);
             break;
@@ -42,14 +52,18 @@ try {
             $id = intval($_POST['id'] ?? 0);
             if ($id <= 0) { echo json_encode(['success'=>false,'message'=>'Invalid id']); break; }
             $students_ids = [];
-            if (isset($_POST['students_ids']) && is_array($_POST['students_ids'])) $students_ids = array_map('intval', $_POST['students_ids']);
-            elseif (isset($_POST['user_ids']) && is_array($_POST['user_ids'])) $students_ids = array_map('intval', $_POST['user_ids']);
+            if (isset($_POST['students_ids']) && is_array($_POST['students_ids'])) $students_ids = array_map('intval', array_filter($_POST['students_ids']));
+            elseif (isset($_POST['user_ids']) && is_array($_POST['user_ids'])) $students_ids = array_map('intval', array_filter($_POST['user_ids']));
+            $subject_ids = [];
+            if (isset($_POST['subjects']) && is_array($_POST['subjects'])) {
+                $subject_ids = array_map('intval', array_filter($_POST['subjects']));
+            }
             $data = [
                 'batch_id' => intval($_POST['batch_id'] ?? 0),
                 'user_id' => intval($_POST['user_id'] ?? 0),
                 'students_ids' => $students_ids,
+                'subject_ids' => $subject_ids,
                 'role' => $_POST['role'] ?? 'faculty',
-                'subjects' => isset($_POST['subjects']) ? $_POST['subjects'] : null,
                 'assigned_at' => $_POST['assigned_at'] ?? date('Y-m-d H:i:s')
             ];
             $ok = BatchAssignmentController::update($id, $data);

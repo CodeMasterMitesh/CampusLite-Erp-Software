@@ -19,6 +19,20 @@
         toIds.forEach(id=>{ const el=document.getElementById(id); if(el && !el.value) el.value=val; });
     }
 
+    function normalizeTime(val){
+        if (!val) return '';
+        const m = String(val).match(/(\d{1,2}):(\d{2})/);
+        if (!m) return '';
+        const hh = m[1].padStart(2,'0');
+        const mm = m[2].padStart(2,'0');
+        return `${hh}:${mm}`;
+    }
+
+    function normalizeDate(val){
+        if (!val) return '';
+        return String(val).slice(0,10);
+    }
+
     async function loadTable(){
         try {
             const res = await CRUD.get('api/schedule_batch.php?action=list');
@@ -63,38 +77,129 @@
         const form = document.getElementById(formId);
         if (form) form.reset();
         const idInput = document.getElementById('scheduleId'); if (idInput) idInput.value = '';
-        const facultyInput = document.getElementById('scheduleFaculty'); if (facultyInput) facultyInput.value = '';
-        const facultyIdInput = document.getElementById('scheduleFacultyId'); if (facultyIdInput) facultyIdInput.value = '';
-        const subj = document.getElementById('scheduleSubjects'); if (subj) subj.innerHTML='';
-        const stu = document.getElementById('scheduleStudents'); if (stu) stu.innerHTML='';
+        
+        // Clear dynamic containers
+        const facultyContainer = document.getElementById('facultyListContainer');
+        if (facultyContainer) facultyContainer.innerHTML = '';
+        
+        const studentsContainer = document.getElementById('studentsListContainer');
+        if (studentsContainer) studentsContainer.innerHTML = '';
+        document.getElementById('studentsTableWrapper').style.display = 'none';
+        
+        const subjectsContainer = document.getElementById('subjectsListContainer');
+        if (subjectsContainer) subjectsContainer.innerHTML = '';
+        document.getElementById('subjectsTableWrapper').style.display = 'none';
+        
+        // Reset batch dropdown
+        const batchSel = document.getElementById('scheduleBatch');
+        if (batchSel) {
+            batchSel.innerHTML = '<option value="">-- Select Branch First --</option>';
+        }
+        
         adjustRecurrenceUI(document.getElementById('scheduleRecurrence')?.value || 'daily');
     }
 
     async function fetchBatchMeta(batchId){
-        if (!batchId) return {subjects:[], students:[], faculty:null};
+        if (!batchId) return {subjects:[], students:[], faculties:[], employees:[], primary_faculty:null};
         const res = await CRUD.get(`api/schedule_batch.php?action=batch_meta&batch_id=${encodeURIComponent(batchId)}`);
-        return res.success ? res.data : {subjects:[], students:[], faculty:null};
+        return res.success ? res.data : {subjects:[], students:[], faculties:[], employees:[], primary_faculty:null};
     }
 
-    async function onBatchChange(){
-        const batchId = document.getElementById('scheduleBatch')?.value;
+    async function loadBatchesForBranch(branchId){
+        const batchSel = document.getElementById('scheduleBatch');
+        if (!batchSel) return;
+        
+        batchSel.innerHTML = '<option value="">-- Loading... --</option>';
+        
+        if (!branchId) {
+            batchSel.innerHTML = '<option value="">-- Select Branch First --</option>';
+            return;
+        }
+        
+        try {
+            const res = await CRUD.get(`api/batches.php?action=list&branch_id=${encodeURIComponent(branchId)}`);
+            batchSel.innerHTML = '<option value="">-- Select Batch --</option>';
+            
+            if (res.success && Array.isArray(res.data)) {
+                res.data.forEach(batch => {
+                    const opt = document.createElement('option');
+                    opt.value = batch.id;
+                    opt.textContent = batch.title || batch.name || `Batch #${batch.id}`;
+                    opt.setAttribute('data-course', batch.course_id || 0);
+                    batchSel.appendChild(opt);
+                });
+            }
+        } catch(e) {
+            console.error('Failed to load batches', e);
+            batchSel.innerHTML = '<option value="">-- Error loading batches --</option>';
+        }
+    }
+
+    async function loadBatchDetails(batchId){
+        if (!batchId) {
+            // Clear everything
+            document.getElementById('facultyListContainer').innerHTML = '';
+            document.getElementById('studentsListContainer').innerHTML = '';
+            document.getElementById('subjectsListContainer').innerHTML = '';
+            document.getElementById('studentsTableWrapper').style.display = 'none';
+            document.getElementById('subjectsTableWrapper').style.display = 'none';
+            return;
+        }
+        
         const meta = await fetchBatchMeta(batchId);
-        const subjSel = document.getElementById('scheduleSubjects');
-        const stuSel = document.getElementById('scheduleStudents');
-        if (subjSel) {
-            subjSel.innerHTML = '';
-            meta.subjects.forEach(s=>{
-                const opt=document.createElement('option'); opt.value=s.id; opt.textContent=s.title; subjSel.appendChild(opt);
+        
+        // Display faculty
+        const facultyContainer = document.getElementById('facultyListContainer');
+        facultyContainer.innerHTML = '';
+        if (meta.faculties && meta.faculties.length > 0) {
+            meta.faculties.forEach(fac => {
+                const div = document.createElement('div');
+                div.className = 'form-check';
+                div.innerHTML = `
+                    <input class="form-check-input" type="checkbox" name="faculty_ids[]" value="${fac.id}" id="fac_${fac.id}">
+                    <label class="form-check-label" for="fac_${fac.id}">${escapeHtml(fac.name || '')}</label>
+                `;
+                facultyContainer.appendChild(div);
             });
+        } else {
+            facultyContainer.innerHTML = '<small class="text-muted">No faculty assigned to this batch</small>';
         }
-        if (stuSel) {
-            stuSel.innerHTML = '';
-            meta.students.forEach(s=>{ const opt=document.createElement('option'); opt.value=s.id; opt.textContent=s.name; stuSel.appendChild(opt); });
+        
+        // Display students with checkboxes
+        const studentsContainer = document.getElementById('studentsListContainer');
+        studentsContainer.innerHTML = '';
+        if (meta.students && meta.students.length > 0) {
+            meta.students.forEach(stu => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center"><input class="form-check-input student-checkbox" type="checkbox" name="student_ids[]" value="${stu.id}" id="stu_${stu.id}"></td>
+                    <td><label for="stu_${stu.id}">${escapeHtml(stu.name || stu.email || 'Student #' + stu.id)}</label></td>
+                `;
+                studentsContainer.appendChild(tr);
+            });
+            document.getElementById('studentsTableWrapper').style.display = '';
+        } else {
+            studentsContainer.innerHTML = '<tr><td colspan="2" class="text-center"><small class="text-muted">No students assigned</small></td></tr>';
+            document.getElementById('studentsTableWrapper').style.display = '';
         }
-        const facName = meta.faculty?.name || '';
-        const facId = meta.faculty?.id || '';
-        const facInput = document.getElementById('scheduleFaculty'); if (facInput) facInput.value = facName;
-        const facHidden = document.getElementById('scheduleFacultyId'); if (facHidden) facHidden.value = facId;
+        
+        // Display subjects with checkboxes
+        const subjectsContainer = document.getElementById('subjectsListContainer');
+        subjectsContainer.innerHTML = '';
+        if (meta.subjects && meta.subjects.length > 0) {
+            meta.subjects.forEach(subj => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center"><input class="form-check-input subject-checkbox" type="checkbox" name="subject_ids[]" value="${subj.id}" id="subj_${subj.id}"></td>
+                    <td><label for="subj_${subj.id}">${escapeHtml(subj.title || subj.code || 'Subject #' + subj.id)}</label></td>
+                `;
+                subjectsContainer.appendChild(tr);
+            });
+            document.getElementById('subjectsTableWrapper').style.display = '';
+        } else {
+            subjectsContainer.innerHTML = '<tr><td colspan="2" class="text-center"><small class="text-muted">No subjects found for this course</small></td></tr>';
+            document.getElementById('subjectsTableWrapper').style.display = '';
+        }
     }
 
     window.viewSchedule = async function(id){
@@ -113,32 +218,55 @@
             const setVal=(sel,val)=>{ const el=document.querySelector(sel); if(el){ el.value = val ?? ''; } };
             setVal('#scheduleId', d.id);
             setVal('#scheduleBranch', d.branch_id);
+            
+            // Load batches for the selected branch, then set the batch value
+            await loadBatchesForBranch(d.branch_id);
             setVal('#scheduleBatch', d.batch_id);
+            
             setVal('#scheduleRecurrence', d.recurrence);
-            setVal('#scheduleStartDate', d.start_date);
-            setVal('#scheduleEndDate', d.end_date);
-            setVal('#scheduleStartTime', d.start_time);
-            setVal('#scheduleEndTime', d.end_time);
-            setVal('#scheduleStartTimeWeekly', d.start_time);
-            setVal('#scheduleEndTimeWeekly', d.end_time);
-            setVal('#scheduleStartTimeMonthly', d.start_time);
-            setVal('#scheduleEndTimeMonthly', d.end_time);
+            setVal('#scheduleStartDate', normalizeDate(d.start_date));
+            setVal('#scheduleEndDate', normalizeDate(d.end_date));
+            const ntStart = normalizeTime(d.start_time);
+            const ntEnd = normalizeTime(d.end_time);
+            setVal('#scheduleStartTime', ntStart);
+            setVal('#scheduleEndTime', ntEnd);
+            setVal('#scheduleStartTimeWeekly', ntStart);
+            setVal('#scheduleEndTimeWeekly', ntEnd);
+            setVal('#scheduleStartTimeMonthly', ntStart);
+            setVal('#scheduleEndTimeMonthly', ntEnd);
             setVal('#scheduleDayOfWeek', d.day_of_week);
             setVal('#scheduleDayOfMonth', d.day_of_month);
             setVal('#scheduleNotes', d.notes);
             setVal('#scheduleStatus', d.status);
             adjustRecurrenceUI(d.recurrence || 'daily');
-            const meta = await fetchBatchMeta(d.batch_id);
-            await onBatchChange();
-            // reapply selected options
-            const subjSel = document.getElementById('scheduleSubjects');
-            const stuSel = document.getElementById('scheduleStudents');
+            
+            // Load batch details (faculty, students, subjects)
+            await loadBatchDetails(d.batch_id);
+            
+            // Mark selected students and subjects as checked
             const subjIds = safeJson(d.subject_ids);
             const stuIds = safeJson(d.student_ids);
-            if (subjSel && subjIds) subjIds.forEach(id=>{ const opt=subjSel.querySelector(`option[value="${id}"]`); if(opt) opt.selected=true; });
-            if (stuSel && stuIds) stuIds.forEach(id=>{ const opt=stuSel.querySelector(`option[value="${id}"]`); if(opt) opt.selected=true; });
-            document.getElementById('scheduleFaculty')?.setAttribute('value', d.faculty_name || meta.faculty?.name || '');
-            document.getElementById('scheduleFacultyId')?.setAttribute('value', d.faculty_id || meta.faculty?.id || '');
+            
+            if (subjIds && subjIds.length > 0) {
+                subjIds.forEach(id => {
+                    const checkbox = document.getElementById(`subj_${id}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
+            if (stuIds && stuIds.length > 0) {
+                stuIds.forEach(id => {
+                    const checkbox = document.getElementById(`stu_${id}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
+            // Mark selected faculty as checked
+            if (d.faculty_id) {
+                const facCheckbox = document.getElementById(`fac_${d.faculty_id}`);
+                if (facCheckbox) facCheckbox.checked = true;
+            }
+            
             const form = document.getElementById(formId);
             Array.from(form.elements).forEach(el=> el.disabled = !!viewOnly);
             const saveBtn = document.getElementById('saveScheduleBtn'); if (saveBtn) saveBtn.style.display = viewOnly ? 'none' : '';
@@ -150,6 +278,7 @@
     window.saveSchedule = async function(){
         const form = document.getElementById(formId);
         const formData = new FormData(form);
+        
         // normalize time fields based on recurrence
         const recurrence = formData.get('recurrence') || 'daily';
         if (recurrence === 'weekly') {
@@ -161,16 +290,22 @@
         }
         formData.delete('start_time_weekly'); formData.delete('end_time_weekly');
         formData.delete('start_time_monthly'); formData.delete('end_time_monthly');
-        const subjSel = document.getElementById('scheduleSubjects');
-        const stuSel = document.getElementById('scheduleStudents');
-        if (subjSel) {
-            formData.delete('subject_ids[]');
-            Array.from(subjSel.selectedOptions).forEach(opt=>formData.append('subject_ids[]', opt.value));
-        }
-        if (stuSel) {
-            formData.delete('student_ids[]');
-            Array.from(stuSel.selectedOptions).forEach(opt=>formData.append('student_ids[]', opt.value));
-        }
+        
+        // Collect selected students from checkboxes
+        formData.delete('student_ids[]');
+        const studentCheckboxes = document.querySelectorAll('.student-checkbox:checked');
+        studentCheckboxes.forEach(cb => formData.append('student_ids[]', cb.value));
+        
+        // Collect selected subjects from checkboxes
+        formData.delete('subject_ids[]');
+        const subjectCheckboxes = document.querySelectorAll('.subject-checkbox:checked');
+        subjectCheckboxes.forEach(cb => formData.append('subject_ids[]', cb.value));
+        
+        // Collect selected faculty from checkboxes
+        formData.delete('faculty_ids[]');
+        const facultyCheckboxes = document.querySelectorAll('input[name="faculty_ids[]"]:checked');
+        facultyCheckboxes.forEach(cb => formData.append('faculty_ids[]', cb.value));
+        
         const id = formData.get('id');
         const action = id ? 'update' : 'create';
         const res = await fetch('api/schedule_batch.php?action='+action, { method:'POST', body: formData });
@@ -203,8 +338,42 @@
             adjustRecurrenceUI(recurrenceSelect.value);
             recurrenceSelect.addEventListener('change', e=>adjustRecurrenceUI(e.target.value));
         }
+        
         const batchSel = document.getElementById('scheduleBatch');
-        if (batchSel) batchSel.addEventListener('change', onBatchChange);
+        const branchSel = document.getElementById('scheduleBranch');
+        
+        // Branch change event - load batches for selected branch
+        if (branchSel) branchSel.addEventListener('change', async (e) => {
+            const branchId = e.target.value;
+            await loadBatchesForBranch(branchId);
+            // Clear batch details when branch changes
+            loadBatchDetails(null);
+        });
+        
+        // Batch change event - load faculty, students, subjects
+        if (batchSel) batchSel.addEventListener('change', async (e) => {
+            const batchId = e.target.value;
+            await loadBatchDetails(batchId);
+        });
+        
+        // Select All Students checkbox
+        const selectAllStudents = document.getElementById('selectAllStudents');
+        if (selectAllStudents) {
+            selectAllStudents.addEventListener('change', (e) => {
+                const checkboxes = document.querySelectorAll('.student-checkbox');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+            });
+        }
+        
+        // Select All Subjects checkbox
+        const selectAllSubjects = document.getElementById('selectAllSubjects');
+        if (selectAllSubjects) {
+            selectAllSubjects.addEventListener('change', (e) => {
+                const checkboxes = document.querySelectorAll('.subject-checkbox');
+                checkboxes.forEach(cb => cb.checked = e.target.checked);
+            });
+        }
+        
         const addBtn = document.querySelector('[data-modal-target="addScheduleModal"], [data-bs-target="#addScheduleModal"]');
         if (addBtn) addBtn.addEventListener('click', ()=>{
             resetForm();

@@ -25,15 +25,40 @@ try {
             echo json_encode(['success'=>true,'data'=>$subjects]);
             break;
         case 'create':
-            $ok = CourseController::create(intval($_POST['branch_id'] ?? 0), $_POST['title'] ?? '', $_POST['description'] ?? '', floatval($_POST['total_fee'] ?? 0), intval($_POST['duration_months'] ?? 0));
+            $file_path = null;
+            $file_name = null;
+            
+            // Handle file upload
+            if (isset($_FILES['course_file']) && $_FILES['course_file']['error'] === UPLOAD_ERR_OK) {
+                $upload_dir = __DIR__ . '/../public/uploads/courses/';
+                if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+                
+                $file_name = $_FILES['course_file']['name'];
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $allowed_exts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'];
+                
+                if (in_array($file_ext, $allowed_exts) && $_FILES['course_file']['size'] <= 10485760) { // 10MB
+                    $unique_name = uniqid() . '_' . time() . '.' . $file_ext;
+                    $file_path = '/public/uploads/courses/' . $unique_name;
+                    move_uploaded_file($_FILES['course_file']['tmp_name'], $upload_dir . $unique_name);
+                }
+            }
+            
+            $ok = CourseController::create(
+                intval($_POST['branch_id'] ?? 0), 
+                $_POST['title'] ?? '', 
+                $_POST['description'] ?? '', 
+                floatval($_POST['total_fee'] ?? 0), 
+                intval($_POST['duration_months'] ?? 0),
+                $file_path,
+                $file_name
+            );
             echo json_encode(['success'=>(bool)$ok]);
             break;
         case 'get':
             $id = intval($_GET['id'] ?? 0);
-            $rows = CourseController::getAll();
-            $found = null;
-            foreach ($rows as $r) if ($r['id'] == $id) $found = $r;
-            echo json_encode(['success' => (bool)$found, 'data' => $found]);
+            $course = CourseController::get($id);
+            echo json_encode(['success' => (bool)$course, 'data' => $course]);
             break;
         case 'update':
             $id = intval($_POST['id'] ?? 0);
@@ -43,9 +68,34 @@ try {
             $description = $_POST['description'] ?? '';
             $total_fee = floatval($_POST['total_fee'] ?? 0);
             $duration = intval($_POST['duration_months'] ?? 0);
-            $stmt = mysqli_prepare($conn, "UPDATE courses SET branch_id = ?, title = ?, description = ?, total_fee = ?, duration_months = ? WHERE id = ?");
-            mysqli_stmt_bind_param($stmt, 'issdii', $branch_id, $title, $description, $total_fee, $duration, $id);
-            $ok = mysqli_stmt_execute($stmt);
+            
+            $file_path = null;
+            $file_name = null;
+            
+            // Handle file upload
+            if (isset($_FILES['course_file']) && $_FILES['course_file']['error'] === UPLOAD_ERR_OK) {
+                $upload_dir = __DIR__ . '/../public/uploads/courses/';
+                if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
+                
+                $file_name = $_FILES['course_file']['name'];
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $allowed_exts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'];
+                
+                if (in_array($file_ext, $allowed_exts) && $_FILES['course_file']['size'] <= 10485760) { // 10MB
+                    // Delete old file if exists
+                    $old = CourseController::get($id);
+                    if ($old && $old['file_path']) {
+                        $old_file = __DIR__ . '/..' . $old['file_path'];
+                        if (file_exists($old_file)) unlink($old_file);
+                    }
+                    
+                    $unique_name = uniqid() . '_' . time() . '.' . $file_ext;
+                    $file_path = '/public/uploads/courses/' . $unique_name;
+                    move_uploaded_file($_FILES['course_file']['tmp_name'], $upload_dir . $unique_name);
+                }
+            }
+            
+            $ok = CourseController::update($id, $branch_id, $title, $description, $total_fee, $duration, $file_path, $file_name);
 
             // Update subjects mapping
             $subjects = isset($_POST['subjects']) ? $_POST['subjects'] : (isset($_POST['subjects']) ? $_POST['subjects'] : []);

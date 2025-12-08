@@ -1,4 +1,9 @@
 // batch_assignments.js
+(function() {
+'use strict';
+
+let availableSubjects = [];
+
 function initBatchAssignments(){
     try { initAdvancedTable('#assignments-table'); } catch(e) { console.error('initBatchAssignments: initAdvancedTable failed', e); }
     const container = document.querySelector('.dashboard-container'); if (container) container.classList.add('show');
@@ -30,30 +35,129 @@ function initBatchAssignments(){
     });
 }
 
+async function loadSubjectsForBatch(batchId){
+    const batchSelect = document.getElementById('assignmentBatch');
+    if (!batchSelect) return [];
+    const opt = Array.from(batchSelect.options).find(o => String(o.value) === String(batchId));
+    const courseId = opt ? opt.getAttribute('data-course') : null;
+    if (!courseId) { availableSubjects = []; return []; }
+    try {
+        const res = await fetch(`api/courses.php?action=get_subjects&id=${encodeURIComponent(courseId)}`, {credentials: 'same-origin'});
+        const json = await res.json();
+        const rows = Array.isArray(json.data) ? json.data : (json.data ? [json.data] : []);
+        availableSubjects = rows.map(r => ({
+            id: r.subject_id || r.id || r,
+            title: r.title || (window.__subjectMap ? window.__subjectMap[r.subject_id || r.id] : null) || (`Subject ${r.subject_id || r.id}`)
+        }));
+        return availableSubjects;
+    } catch(e) { console.warn('Failed to load course subjects', e); return []; }
+}
+
+// Subject row creation
+function createSubjectRow(initial) {
+    const tr = document.createElement('tr');
+    tr.className = 'subject-row';
+    
+    const tdSubject = document.createElement('td');
+    const select = document.createElement('select');
+    select.className = 'form-control form-control-sm subject-select';
+    select.name = 'subjects[]';
+    select.required = true;
+    
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '-- Select Subject --';
+    select.appendChild(defaultOpt);
+    
+    availableSubjects.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.title;
+        if (initial && initial.id == s.id) opt.selected = true;
+        select.appendChild(opt);
+    });
+    
+    tdSubject.appendChild(select);
+    
+    const tdAction = document.createElement('td');
+    tdAction.className = 'text-center';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-sm btn-outline-danger';
+    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+    removeBtn.addEventListener('click', function() {
+        tr.remove();
+        updateSubjectsTableVisibility();
+    });
+    tdAction.appendChild(removeBtn);
+    
+    tr.appendChild(tdSubject);
+    tr.appendChild(tdAction);
+    
+    return tr;
+}
+
+function updateSubjectsTableVisibility() {
+    const wrapper = document.getElementById('assignmentSubjectsTableWrapper');
+    const container = document.getElementById('assignmentSubjectsContainer');
+    if (wrapper && container) {
+        wrapper.style.display = container.querySelectorAll('.subject-row').length > 0 ? '' : 'none';
+    }
+}
+
+function toDateTimeLocal(val){
+    if (!val) return '';
+    // Accepts `YYYY-MM-DD HH:MM:SS` or ISO; normalizes to `YYYY-MM-DDTHH:MM` for datetime-local
+    try {
+        let normalized = String(val).replace(' ', 'T');
+        // Strip seconds if present
+        const match = normalized.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::\d{2})?/);
+        if (match) normalized = `${match[1]}T${match[2]}`;
+        const dt = new Date(normalized);
+        if (isNaN(dt.getTime())) return '';
+        const iso = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString();
+        return iso.slice(0,16);
+    } catch(e){ return ''; }
+}
+
 // populate subjects when a batch is selected
 function initBatchSubjects() {
     try {
         const batchSelect = document.getElementById('assignmentBatch');
-        const subjectsSelect = document.getElementById('assignmentSubjects');
-        // subject map injected by server (if present)
-        const SUBJECT_MAP = window.__subjectMap || {};
-        if (batchSelect && subjectsSelect) {
-            batchSelect.addEventListener('change', async function(){
-                const opt = batchSelect.options[batchSelect.selectedIndex];
-                const courseId = opt ? opt.getAttribute('data-course') : null;
-                subjectsSelect.innerHTML = '';
-                if (!courseId) return;
-                try {
-                    const res = await fetch(`api/courses.php?action=get_subjects&id=${encodeURIComponent(courseId)}`, {credentials: 'same-origin'});
-                    const json = await res.json();
-                    const rows = Array.isArray(json.data) ? json.data : [];
-                    rows.forEach(r => {
-                        const id = r.subject_id || r.id || r;
-                        const title = r.title || SUBJECT_MAP[id] || (`Subject ${id}`);
-                        const opt = document.createElement('option'); opt.value = id; opt.textContent = title; subjectsSelect.appendChild(opt);
-                    });
-                } catch(e) { console.warn('Failed to load course subjects', e); }
-            });
+        if (batchSelect) {
+            // Check if listener is already attached (to avoid duplicates)
+            if (batchSelect.dataset.listenerAttached !== 'true') {
+                batchSelect.addEventListener('change', async function(){
+                    await loadSubjectsForBatch(batchSelect.value);
+                    // Clear existing subject rows when batch changes
+                    const container = document.getElementById('assignmentSubjectsContainer');
+                    if (container) {
+                        container.querySelectorAll('.subject-row').forEach(r => r.remove());
+                        updateSubjectsTableVisibility();
+                    }
+                });
+                batchSelect.dataset.listenerAttached = 'true';
+            }
+        }
+        
+        // Initialize Add Subject button
+        const addSubjectBtn = document.getElementById('addSubjectRowBtn');
+        const container = document.getElementById('assignmentSubjectsContainer');
+        if (addSubjectBtn && container) {
+            // Check if listener is already attached
+            if (addSubjectBtn.dataset.listenerAttached !== 'true') {
+                addSubjectBtn.addEventListener('click', function() {
+                    console.log('Add Subject clicked, available subjects:', availableSubjects.length);
+                    if (availableSubjects.length === 0) {
+                        alert('Please select a batch first to load available subjects.');
+                        return;
+                    }
+                    const row = createSubjectRow();
+                    container.appendChild(row);
+                    updateSubjectsTableVisibility();
+                });
+                addSubjectBtn.dataset.listenerAttached = 'true';
+            }
         }
     } catch(e){ console.warn('subjects init failed', e); }
 }
@@ -116,9 +220,19 @@ function initStudentRows() {
         const container = document.getElementById('assignmentStudentsContainer');
         const addBtn = document.getElementById('addStudentRowBtn');
         if (!container || !addBtn) return;
-        // add one empty row by default if none
-        if (!container.querySelector('.student-row')) container.appendChild(createStudentRow());
-        addBtn.addEventListener('click', function(){ container.appendChild(createStudentRow()); });
+        
+        // Check if listener is already attached
+        if (addBtn.dataset.listenerAttached !== 'true') {
+            // add one empty row by default if none
+            if (!container.querySelector('.student-row')) container.appendChild(createStudentRow());
+            
+            addBtn.addEventListener('click', function(){ 
+                console.log('Add Student clicked');
+                container.appendChild(createStudentRow()); 
+            });
+            
+            addBtn.dataset.listenerAttached = 'true';
+        }
     } catch(e){ console.warn('student rows init failed', e); }
 }
 
@@ -129,57 +243,233 @@ if (document.readyState === 'loading') {
 }
 
 window.initBatchAssignments = initBatchAssignments;
+window.editAssignment = editAssignment;
+window.deleteAssignment = deleteAssignment;
+window.saveAssignment = saveAssignment;
+window.deleteSelectedAssignments = deleteSelectedAssignments;
+window.exportToExcel = exportToExcel;
+window.printTable = printTable;
+window.refreshTable = refreshTable;
+
+// Reset function to clear dynamic content when opening Add modal
+function resetAssignmentModal() {
+    console.log('Resetting assignment modal to Add mode');
+    
+    // Clear all student rows
+    const studentsContainer = document.getElementById('assignmentStudentsContainer');
+    if (studentsContainer) {
+        studentsContainer.querySelectorAll('.student-row').forEach(r => r.remove());
+        // Add one empty row
+        studentsContainer.appendChild(createStudentRow());
+    }
+    
+    // Clear all subject rows
+    const subjectsContainer = document.getElementById('assignmentSubjectsContainer');
+    if (subjectsContainer) {
+        subjectsContainer.querySelectorAll('.subject-row').forEach(r => r.remove());
+        updateSubjectsTableVisibility();
+    }
+    
+    // Reset available subjects
+    availableSubjects = [];
+    
+    // Reset form hidden fields
+    const assignmentIdField = document.getElementById('assignmentId');
+    if (assignmentIdField) assignmentIdField.value = '';
+    
+    // Reset dropdowns
+    const batchSelect = document.getElementById('assignmentBatch');
+    if (batchSelect) batchSelect.value = '0';
+    
+    const userSelect = document.getElementById('assignmentUser');
+    if (userSelect) userSelect.value = '0';
+    
+    // Reset modal title and button (already done by showAddModal but just to be sure)
+    const titleEl = document.getElementById('assignmentModalTitle');
+    if (titleEl) titleEl.textContent = 'Add Assignment';
+    const saveBtn = document.getElementById('assignmentSaveBtn');
+    if (saveBtn) saveBtn.textContent = 'Save';
+}
+
+window.resetAssignmentModal = resetAssignmentModal;
+
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initBatchAssignments); else try { initBatchAssignments(); } catch(e) { console.error('initBatchAssignments immediate failed', e); }
 
-async function editAssignment(id){ if (window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer'); try{ const res = await CRUD.get(`api/batch_assignments.php?action=get&id=${encodeURIComponent(id)}`); if (res.success && res.data){ const a = res.data; document.getElementById('assignmentId').value = a.id || ''; document.getElementById('assignmentBatch').value = a.batch_id || 0; document.getElementById('assignmentUser').value = a.user_id || 0; document.querySelector('#addAssignmentForm [name="role"]').value = a.role || 'faculty'; if (a.assigned_at){ const dt = new Date(a.assigned_at); // format to local datetime-local
-            const iso = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
-            document.getElementById('assignmentAt').value = iso;
-        } else document.getElementById('assignmentAt').value = '';
-            // trigger batch change to populate subjects, then set subjects and student selections
-        const batchEl = document.getElementById('assignmentBatch');
-        const subjectsEl = document.getElementById('assignmentSubjects');
-        const studentsContainer = document.getElementById('assignmentStudentsContainer');
-        if (batchEl) {
-            // set value then dispatch change so subjects populate
-            batchEl.value = a.batch_id || 0;
-            batchEl.dispatchEvent(new Event('change'));
-            setTimeout(async function(){
-                try {
-                    // set subjects if provided
-                    if (Array.isArray(a.subjects) && subjectsEl) {
-                        Array.from(subjectsEl.options).forEach(opt => { opt.selected = a.subjects.indexOf(opt.value) !== -1 || a.subjects.indexOf(parseInt(opt.value)) !== -1; });
-                    }
-                    // populate student rows if there are students_ids stored (regardless of role)
-                    const sids = Array.isArray(a.students_ids) ? a.students_ids : (Array.isArray(a.user_ids) ? a.user_ids : (a.students_ids ? [a.students_ids] : []));
-                    if (sids && sids.length && studentsContainer) {
-                        // clear existing rows
-                        studentsContainer.querySelectorAll('.student-row').forEach(n => n.remove());
-                        for (const sid of sids) {
-                            try {
-                                // prefer injected student map to avoid extra requests
-                                let studentData = null;
-                                try { if (window.__studentMap && window.__studentMap[sid]) studentData = { id: sid, name: window.__studentMap[sid] }; } catch(e){}
-                                if (!studentData) {
-                                    const sres = await fetch(`api/students.php?action=get&id=${encodeURIComponent(sid)}`, {credentials: 'same-origin'});
-                                    const sj = await sres.json();
-                                    if (sj && sj.success && sj.data) studentData = sj.data; else if (sj && sj.id) studentData = sj;
-                                }
-                                const row = createStudentRow(studentData || { id: sid, name: '' });
-                                studentsContainer.appendChild(row);
-                            } catch(e) { console.warn('failed to load student for edit', e); }
-                        }
-                    }
-                } catch(e) { console.warn('failed to set subjects/students in editAssignment', e); }
-            }, 300);
-        }
-        // set modal to Edit mode labels
-        try {
-            const titleEl = document.getElementById('assignmentModalTitle'); if (titleEl) titleEl.textContent = 'Edit Assignment';
-            const saveBtn = document.getElementById('assignmentSaveBtn'); if (saveBtn) saveBtn.textContent = 'Update';
-        } catch(e) { /* ignore */ }
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('addAssignmentModal')).show(); } else CRUD.toastError && CRUD.toastError('Not found'); }catch(e){ CRUD.toastError && CRUD.toastError('Failed: '+e.message);} finally{ CRUD.hideLoading && CRUD.hideLoading(); } }
+// Add modal event listener to reinitialize buttons when modal is shown
+let isEditMode = false; // Track whether we're in edit mode
 
-async function saveAssignment(){ const form = document.getElementById('addAssignmentForm'); const params = new FormData(form); const id = params.get('id'); const action = id ? 'update' : 'create'; try{ const res = await CRUD.post('api/batch_assignments.php?action='+action, params); if (res.success){ bootstrap.Modal.getOrCreateInstance(document.getElementById('addAssignmentModal')).hide(); CRUD.toastSuccess && CRUD.toastSuccess('Saved'); setTimeout(()=>location.reload(),600); } else CRUD.toastError && CRUD.toastError('Save failed'); }catch(e){ CRUD.toastError && CRUD.toastError('Request failed: '+e.message); } }
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalEl = document.getElementById('addAssignmentModal');
+        if (modalEl) {
+            // Use 'show.bs.modal' to reset BEFORE modal is visible
+            modalEl.addEventListener('show.bs.modal', function() {
+                console.log('Modal about to show, isEditMode:', isEditMode);
+                
+                // If not in edit mode, this is Add mode - reset everything
+                if (!isEditMode) {
+                    console.log('Add mode detected, resetting modal BEFORE show');
+                    // Use setTimeout to let showAddModal finish its reset first
+                    setTimeout(() => {
+                        resetAssignmentModal();
+                    }, 0);
+                }
+                
+                // Reset the flag after checking
+                isEditMode = false;
+            });
+            
+            // Use 'shown.bs.modal' to reinitialize buttons AFTER modal is visible
+            modalEl.addEventListener('shown.bs.modal', function() {
+                console.log('Modal shown, reinitializing buttons');
+                initStudentRows();
+                initBatchSubjects();
+            });
+        }
+    });
+} else {
+    const modalEl = document.getElementById('addAssignmentModal');
+    if (modalEl) {
+        // Use 'show.bs.modal' to reset BEFORE modal is visible
+        modalEl.addEventListener('show.bs.modal', function() {
+            console.log('Modal about to show, isEditMode:', isEditMode);
+            
+            // If not in edit mode, this is Add mode - reset everything
+            if (!isEditMode) {
+                console.log('Add mode detected, resetting modal BEFORE show');
+                // Use setTimeout to let showAddModal finish its reset first
+                setTimeout(() => {
+                    resetAssignmentModal();
+                }, 0);
+            }
+            
+            // Reset the flag after checking
+            isEditMode = false;
+        });
+        
+        // Use 'shown.bs.modal' to reinitialize buttons AFTER modal is visible
+        modalEl.addEventListener('shown.bs.modal', function() {
+            console.log('Modal shown, reinitializing buttons');
+            initStudentRows();
+            initBatchSubjects();
+        });
+    }
+}
+
+async function editAssignment(id){
+    // Set flag to indicate we're opening in edit mode
+    isEditMode = true;
+    
+    if (window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer');
+    try {
+        const res = await CRUD.get(`api/batch_assignments.php?action=get&id=${encodeURIComponent(id)}`);
+        if (res.success && res.data){
+            const a = res.data;
+            document.getElementById('assignmentId').value = a.id || '';
+            document.getElementById('assignmentUser').value = a.user_id || 0;
+            document.querySelector('#addAssignmentForm [name="role"]').value = a.role || 'faculty';
+            document.getElementById('assignmentAt').value = toDateTimeLocal(a.assigned_at);
+
+            const studentsContainer = document.getElementById('assignmentStudentsContainer');
+            const subjectsContainer = document.getElementById('assignmentSubjectsContainer');
+            
+            // Load subjects for the batch first
+            await loadSubjectsForBatch(a.batch_id || 0);
+            
+            // NOW set the batch value (after loading subjects)
+            document.getElementById('assignmentBatch').value = a.batch_id || 0;
+            
+            // Populate subject rows if subject_ids are stored
+            if (subjectsContainer) {
+                subjectsContainer.querySelectorAll('.subject-row').forEach(r => r.remove());
+                const subjectIds = Array.isArray(a.subject_ids) ? a.subject_ids : [];
+                
+                if (subjectIds.length > 0) {
+                    subjectIds.forEach(subjId => {
+                        const row = createSubjectRow({ id: subjId });
+                        subjectsContainer.appendChild(row);
+                    });
+                }
+                updateSubjectsTableVisibility();
+            }
+
+            // populate student rows if there are students_ids stored (junction-aware)
+            const sids = Array.isArray(a.students_ids) ? a.students_ids : (Array.isArray(a.user_ids) ? a.user_ids : (a.students_ids ? [a.students_ids] : []));
+            if (sids && sids.length && studentsContainer) {
+                studentsContainer.querySelectorAll('.student-row').forEach(n => n.remove());
+                for (const sid of sids) {
+                    try {
+                        let studentData = null;
+                        try { if (window.__studentMap && window.__studentMap[sid]) studentData = { id: sid, name: window.__studentMap[sid] }; } catch(e){}
+                        if (!studentData) {
+                            const sres = await fetch(`api/students.php?action=get&id=${encodeURIComponent(sid)}`, {credentials: 'same-origin'});
+                            const sj = await sres.json();
+                            if (sj && sj.success && sj.data) studentData = sj.data; else if (sj && sj.id) studentData = sj;
+                        }
+                        const row = createStudentRow(studentData || { id: sid, name: '' });
+                        studentsContainer.appendChild(row);
+                    } catch(e) { console.warn('failed to load student for edit', e); }
+                }
+            }
+
+            // set modal to Edit mode labels
+            try {
+                const titleEl = document.getElementById('assignmentModalTitle'); if (titleEl) titleEl.textContent = 'Edit Assignment';
+                const saveBtn = document.getElementById('assignmentSaveBtn'); if (saveBtn) saveBtn.textContent = 'Update';
+            } catch(e) { /* ignore */ }
+            
+            // Reinitialize button listeners after content is loaded
+            setTimeout(() => {
+                initStudentRows();
+                initBatchSubjects();
+            }, 100);
+            
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addAssignmentModal')).show();
+        } else {
+            CRUD.toastError && CRUD.toastError('Not found');
+        }
+    } catch(e){
+        CRUD.toastError && CRUD.toastError('Failed: '+e.message);
+    } finally {
+        CRUD.hideLoading && CRUD.hideLoading();
+    }
+}
+
+async function saveAssignment(){ 
+    const form = document.getElementById('addAssignmentForm'); 
+    const params = new FormData(form);
+    
+    // Remove empty student IDs
+    const allStudentIds = params.getAll('students_ids[]');
+    params.delete('students_ids[]');
+    allStudentIds.forEach(id => {
+        if (id && id.trim()) {
+            params.append('students_ids[]', id);
+        }
+    });
+    
+    // Remove empty subject IDs
+    const allSubjectIds = params.getAll('subjects[]');
+    params.delete('subjects[]');
+    allSubjectIds.forEach(id => {
+        if (id && id.trim()) {
+            params.append('subjects[]', id);
+        }
+    });
+    
+    const id = params.get('id'); 
+    const action = id ? 'update' : 'create'; 
+    try{ 
+        const res = await CRUD.post('api/batch_assignments.php?action='+action, params); 
+        if (res.success){ 
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addAssignmentModal')).hide(); 
+            CRUD.toastSuccess && CRUD.toastSuccess('Saved'); 
+            setTimeout(()=>location.reload(),600); 
+        } else CRUD.toastError && CRUD.toastError('Save failed'); 
+    }catch(e){ 
+        CRUD.toastError && CRUD.toastError('Request failed: '+e.message); 
+    } 
+}
 
 async function deleteAssignment(id){ if (!confirm('Delete assignment '+id+'?')) return; try{ const p = new URLSearchParams(); p.append('id', id); const res = await CRUD.post('api/batch_assignments.php?action=delete', p); if (res.success) { CRUD.toastSuccess && CRUD.toastSuccess('Deleted'); setTimeout(()=>location.reload(),600);} else CRUD.toastError && CRUD.toastError('Delete failed'); }catch(e){ CRUD.toastError && CRUD.toastError('Request failed: '+e.message); } }
 
@@ -202,3 +492,5 @@ function printTable() {
 }
 
 function refreshTable() { if (window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer'); setTimeout(()=>location.reload(),700); }
+
+})(); // End of IIFE

@@ -70,16 +70,56 @@ async function editSubject(id) {
     try {
         const res = await CRUD.get(`api/subjects.php?action=get&id=${encodeURIComponent(id)}`);
         if (res.success && res.data) {
-            const s = res.data;
-            document.getElementById('subjectId').value = s.id || '';
-            document.querySelector('#addSubjectForm [name="title"]').value = s.title || '';
-            document.querySelector('#addSubjectForm [name="description"]').value = s.description || '';
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('addSubjectModal')).show();
+            renderSubjectForm(res.data, 'edit');
         } else {
             CRUD.toastError('Subject not found');
         }
     } catch (e) { CRUD.toastError('Failed to load: ' + e.message); }
     finally { window.CRUD && CRUD.hideLoading && CRUD.hideLoading(); }
+}
+
+async function viewSubject(id) {
+    if (window.CRUD && CRUD.showLoading) CRUD.showLoading('tableContainer');
+    try {
+        const res = await CRUD.get(`api/subjects.php?action=get&id=${encodeURIComponent(id)}`);
+        if (res.success && res.data) {
+            renderSubjectForm(res.data, 'view');
+        } else {
+            CRUD.toastError('Subject not found');
+        }
+    } catch (e) { CRUD.toastError('Failed to load: ' + e.message); }
+    finally { window.CRUD && CRUD.hideLoading && CRUD.hideLoading(); }
+}
+
+function renderSubjectForm(s, mode = 'edit') {
+    // Populate fields
+    document.getElementById('subjectId').value = s.id || '';
+    document.getElementById('subjectIdDisplay').textContent = s.id || '-';
+    document.getElementById('subjectTitle').value = s.title || '';
+    document.getElementById('subjectDescription').value = s.description || '';
+    
+    // Disable form if viewing
+    const form = document.getElementById('addSubjectForm');
+    if (form) {
+        Array.from(form.elements).forEach(el => {
+            if (el.id !== 'subjectId') {
+                el.disabled = (mode === 'view');
+            }
+        });
+    }
+    
+    // Update modal title and button
+    const title = document.getElementById('subjectModalTitle');
+    if (title) title.textContent = mode === 'view' ? 'View Subject' : 'Edit Subject';
+    
+    const saveBtn = document.getElementById('subjectSaveBtn');
+    if (saveBtn) {
+        saveBtn.style.display = mode === 'view' ? 'none' : '';
+        saveBtn.textContent = mode === 'view' ? '' : 'Update Subject';
+    }
+    
+    // Show modal
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addSubjectModal')).show();
 }
 
 async function deleteSubject(id) {

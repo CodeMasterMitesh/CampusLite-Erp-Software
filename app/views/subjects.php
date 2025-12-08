@@ -56,6 +56,7 @@ $totalPages = 1;
                                 <td data-label="Description"><?= htmlspecialchars($s['description'] ?? '') ?></td>
                                 <td data-label="Actions">
                                     <div class="table-actions">
+                                        <button class="btn btn-sm btn-outline-info btn-table" onclick="viewSubject(<?= $s['id'] ?? 0 ?>)" title="View"><i class="fas fa-eye"></i></button>
                                         <button class="btn btn-sm btn-outline-primary btn-table" onclick="editSubject(<?= $s['id'] ?? 0 ?>)" title="Edit"><i class="fas fa-edit"></i></button>
                                         <button class="btn btn-sm btn-outline-danger btn-table" onclick="deleteSubject(<?= $s['id'] ?? 0 ?>)" title="Delete"><i class="fas fa-trash"></i></button>
                                     </div>
@@ -74,22 +75,38 @@ $totalPages = 1;
     </div>
 </div>
 
-<!-- Add Subject Modal -->
+<!-- Add/Edit/View Subject Modal -->
 <div class="modal fade" id="addSubjectModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-md">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Subject</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="subjectModalTitle">Add New Subject</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="addSubjectForm">
                     <input type="hidden" name="id" id="subjectId" value="">
-                    <div class="mb-3"><label class="form-label">Title</label><input type="text" class="form-control" name="title" required></div>
-                    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">ID</label>
+                        <p id="subjectIdDisplay" class="form-control-plaintext"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="title" id="subjectTitle" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" id="subjectDescription" rows="4"></textarea>
+                    </div>
                 </form>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" onclick="saveSubject()">Save Subject</button></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="subjectSaveBtn" onclick="saveSubject()">Save Subject</button>
+            </div>
         </div>
     </div>
 </div>

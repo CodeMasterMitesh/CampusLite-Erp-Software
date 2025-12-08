@@ -10,10 +10,10 @@ $page_title = 'Schedule Batch';
 $add_button = ['label' => 'Add Schedule', 'modal' => 'addScheduleModal', 'form' => 'addScheduleForm'];
 $action_buttons = [];
 $show_actions = true;
-include __DIR__ . '/partials/page-header.php';
 ?>
 
 <div class="container-fluid dashboard-container fade-in">
+    <?php include __DIR__ . '/partials/page-header.php'; ?>
     <div class="advanced-table-container">
         <div class="table-responsive table-compact" id="tableContainer">
             <table class="table data-table" id="schedule-table">
@@ -60,16 +60,43 @@ include __DIR__ . '/partials/page-header.php';
                         <div class="col-md-4">
                             <label class="form-label">Batch</label>
                             <select class="form-select" name="batch_id" id="scheduleBatch" required>
-                                <option value="">-- Select Batch --</option>
-                                <?php foreach ($batches as $bat): ?>
-                                    <option value="<?= intval($bat['id']) ?>" data-course="<?= intval($bat['course_id'] ?? 0) ?>"><?= htmlspecialchars($bat['title'] ?? ('Batch #' . $bat['id'])) ?></option>
-                                <?php endforeach; ?>
+                                <option value="">-- Select Branch First --</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Faculty (from batch)</label>
-                            <input type="text" class="form-control" id="scheduleFaculty" name="faculty_name" readonly>
-                            <input type="hidden" name="faculty_id" id="scheduleFacultyId">
+                            <div id="facultyListContainer"></div>
+                            <small class="text-muted">Assigned faculty will be shown here</small>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Students (from batch)</label>
+                            <div class="table-responsive" id="studentsTableWrapper" style="display:none;">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th width="40"><input type="checkbox" id="selectAllStudents"></th>
+                                            <th>Student Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="studentsListContainer"></tbody>
+                                </table>
+                            </div>
+                            <small class="text-muted">Select students for this schedule</small>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Subjects (from batch course)</label>
+                            <div class="table-responsive" id="subjectsTableWrapper" style="display:none;">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th width="40"><input type="checkbox" id="selectAllSubjects"></th>
+                                            <th>Subject Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subjectsListContainer"></tbody>
+                                </table>
+                            </div>
+                            <small class="text-muted">Select subjects for this schedule</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Recurrence</label>
@@ -126,16 +153,8 @@ include __DIR__ . '/partials/page-header.php';
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Subjects (from batch course)</label>
-                            <select class="form-select" name="subject_ids[]" id="scheduleSubjects" multiple></select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Students (from batch)</label>
-                            <select class="form-select" name="student_ids[]" id="scheduleStudents" multiple></select>
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">Notes</label>
-                            <input type="text" class="form-control" name="notes" id="scheduleNotes" placeholder="Optional note">
+                            <textarea class="form-control" name="notes" id="scheduleNotes" rows="2" placeholder="Optional note"></textarea>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Status</label>
