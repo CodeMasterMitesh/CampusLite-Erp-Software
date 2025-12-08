@@ -53,8 +53,12 @@ try {
                     while ($r = mysqli_fetch_assoc($res)) $out['subjects'][] = $r;
                 }
             }
-            // students via enrollments
-            $sqlStu = "SELECT st.id, st.name FROM enrollments e JOIN students st ON st.id=e.student_id WHERE e.batch_id=?";
+            // students via batch_assignments -> batch_assignment_students
+            $sqlStu = "SELECT DISTINCT s.id, s.name, s.email 
+                       FROM batch_assignments ba 
+                       JOIN batch_assignment_students bas ON bas.assignment_id = ba.id 
+                       JOIN students s ON s.id = bas.student_id 
+                       WHERE ba.batch_id = ?";
             if ($stmt = mysqli_prepare($conn, $sqlStu)) {
                 mysqli_stmt_bind_param($stmt, 'i', $batchId);
                 if (mysqli_stmt_execute($stmt)) {

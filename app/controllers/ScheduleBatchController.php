@@ -41,7 +41,15 @@ class ScheduleBatchController {
         $stmt = mysqli_prepare($conn, $sql);
         $branch_id = intval($data['branch_id'] ?? 0);
         $batch_id = intval($data['batch_id'] ?? 0);
-        $faculty_id = $data['faculty_id'] !== '' ? intval($data['faculty_id']) : null;
+        
+        // Handle faculty_ids array - store as JSON or take first faculty as primary
+        $faculty_id = null;
+        if (isset($data['faculty_ids']) && is_array($data['faculty_ids']) && !empty($data['faculty_ids'])) {
+            $faculty_id = intval($data['faculty_ids'][0]); // Store first faculty as primary
+        } elseif (isset($data['faculty_id']) && $data['faculty_id'] !== '') {
+            $faculty_id = intval($data['faculty_id']);
+        }
+        
         $recurrence = $data['recurrence'] ?? 'daily';
         $start_date = $data['start_date'] ?? null;
         $end_date = $data['end_date'] ?? null;
@@ -69,7 +77,15 @@ class ScheduleBatchController {
         $stmt = mysqli_prepare($conn, $sql);
         $branch_id = intval($data['branch_id'] ?? 0);
         $batch_id = intval($data['batch_id'] ?? 0);
-        $faculty_id = $data['faculty_id'] !== '' ? intval($data['faculty_id']) : null;
+        
+        // Handle faculty_ids array - store as JSON or take first faculty as primary
+        $faculty_id = null;
+        if (isset($data['faculty_ids']) && is_array($data['faculty_ids']) && !empty($data['faculty_ids'])) {
+            $faculty_id = intval($data['faculty_ids'][0]); // Store first faculty as primary
+        } elseif (isset($data['faculty_id']) && $data['faculty_id'] !== '') {
+            $faculty_id = intval($data['faculty_id']);
+        }
+        
         $recurrence = $data['recurrence'] ?? 'daily';
         $start_date = $data['start_date'] ?? null;
         $end_date = $data['end_date'] ?? null;

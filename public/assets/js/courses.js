@@ -185,6 +185,7 @@
                 document.querySelector('#addCourseForm [name="branch_id"]').value = c.branch_id || '';
                 document.querySelector('#addCourseForm [name="total_fee"]').value = c.total_fee || '';
                 document.querySelector('#addCourseForm [name="duration_months"]').value = c.duration_months || '';
+                document.querySelector('#addCourseForm [name="description"]').value = c.description || '';
                 
                 // Load and display subjects
                 const subjRes = await CRUD.get(`api/courses.php?action=get_subjects&id=${encodeURIComponent(id)}`);

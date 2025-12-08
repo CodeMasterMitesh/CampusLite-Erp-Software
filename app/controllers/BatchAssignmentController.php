@@ -62,6 +62,19 @@ class BatchAssignmentController {
                     $row['students_ids'] = $sids;
                 }
             }
+            
+            // fetch subjects from junction table
+            $row['subject_ids'] = [];
+            $subjStmt = mysqli_prepare($conn, "SELECT subject_id FROM batch_assignment_subjects WHERE assignment_id = ?");
+            if ($subjStmt) {
+                mysqli_stmt_bind_param($subjStmt, 'i', $row['id']);
+                if (mysqli_stmt_execute($subjStmt)) {
+                    $resSubj = mysqli_stmt_get_result($subjStmt);
+                    $subjIds = [];
+                    while ($rr = mysqli_fetch_assoc($resSubj)) $subjIds[] = intval($rr['subject_id']);
+                    $row['subject_ids'] = $subjIds;
+                }
+            }
         }
         return $row;
     }
@@ -85,6 +98,17 @@ class BatchAssignmentController {
                         $sid = intval($sid);
                         mysqli_stmt_bind_param($ins, 'ii', $assignment_id, $sid);
                         mysqli_stmt_execute($ins);
+                    }
+                }
+            }
+            // populate normalized junction table if subject ids provided
+            if (!empty($data['subject_ids']) && is_array($data['subject_ids'])) {
+                $insSubj = mysqli_prepare($conn, "INSERT INTO batch_assignment_subjects (assignment_id, subject_id) VALUES (?, ?)");
+                if ($insSubj) {
+                    foreach ($data['subject_ids'] as $subjId) {
+                        $subjId = intval($subjId);
+                        mysqli_stmt_bind_param($insSubj, 'ii', $assignment_id, $subjId);
+                        mysqli_stmt_execute($insSubj);
                     }
                 }
             }
@@ -116,6 +140,23 @@ class BatchAssignmentController {
                         $sid = intval($sid);
                         mysqli_stmt_bind_param($ins, 'ii', $id, $sid);
                         mysqli_stmt_execute($ins);
+                    }
+                }
+            }
+            
+            // refresh normalized junction table entries for subjects
+            $delSubj = mysqli_prepare($conn, "DELETE FROM batch_assignment_subjects WHERE assignment_id = ?");
+            if ($delSubj) {
+                mysqli_stmt_bind_param($delSubj, 'i', $id);
+                mysqli_stmt_execute($delSubj);
+            }
+            if (!empty($data['subject_ids']) && is_array($data['subject_ids'])) {
+                $insSubj = mysqli_prepare($conn, "INSERT INTO batch_assignment_subjects (assignment_id, subject_id) VALUES (?, ?)");
+                if ($insSubj) {
+                    foreach ($data['subject_ids'] as $subjId) {
+                        $subjId = intval($subjId);
+                        mysqli_stmt_bind_param($insSubj, 'ii', $id, $subjId);
+                        mysqli_stmt_execute($insSubj);
                     }
                 }
             }

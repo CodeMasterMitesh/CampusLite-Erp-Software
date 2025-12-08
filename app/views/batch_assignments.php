@@ -32,6 +32,25 @@ if (!empty($GLOBALS['conn'])) {
         ];
     }
 }
+
+// Build subject lookup from junction table for each assignment
+// JOIN with subjects table to get names directly from DB
+$assignmentSubjects = [];
+if (!empty($GLOBALS['conn'])) {
+    $res = mysqli_query($GLOBALS['conn'], "
+        SELECT bas.assignment_id, bas.subject_id, subj.title as subject_title, subj.code
+        FROM batch_assignment_subjects bas
+        LEFT JOIN subjects subj ON subj.id = bas.subject_id
+        ORDER BY bas.assignment_id, bas.subject_id
+    ");
+    while ($r = mysqli_fetch_assoc($res)) {
+        if (!isset($assignmentSubjects[$r['assignment_id']])) $assignmentSubjects[$r['assignment_id']] = [];
+        $assignmentSubjects[$r['assignment_id']][] = [
+            'id' => intval($r['subject_id']),
+            'title' => $r['subject_title'] ?? $r['code'] ?? ('Subject ' . $r['subject_id'])
+        ];
+    }
+}
 ?>
 
 <div class="container-fluid dashboard-container fade-in">
@@ -55,6 +74,7 @@ if (!empty($GLOBALS['conn'])) {
                         <th width="80">ID</th>
                         <th>Batch</th>
                         <th>Students</th>
+                        <th>Subjects</th>
                         <th>Faculty / Employee</th>
                         <th>Role</th>
                         <th>Assigned At</th>
@@ -67,6 +87,8 @@ if (!empty($GLOBALS['conn'])) {
                             <td>
                                 <div class="empty-state"><i class="fas fa-inbox"></i><h4>No assignments</h4><p>No batch assignments found</p></div>
                             </td>
+                            <td></td>
+                            <td></td>
                             <td></td>
                             <td></td>
                             <td></td>
@@ -94,6 +116,21 @@ if (!empty($GLOBALS['conn'])) {
                                         } else {
                                             echo '-';
                                         }
+                                    } else {
+                                        echo '-';
+                                    }
+                                ?>
+                            </td>
+                            <td data-label="Subjects">
+                                <?php
+                                    // Show subjects from junction table
+                                    $subjects_data = $assignmentSubjects[$a['id']] ?? [];
+                                    if (!empty($subjects_data)) {
+                                        $titles = [];
+                                        foreach ($subjects_data as $subj) {
+                                            $titles[] = htmlspecialchars($subj['title']);
+                                        }
+                                        echo implode(', ', $titles);
                                     } else {
                                         echo '-';
                                     }
@@ -176,9 +213,25 @@ if (!empty($GLOBALS['conn'])) {
                             <small class="text-muted ms-2">Search & add multiple students. Each added student will be submitted as <code>students_ids[]</code>.</small>
                         </div>
                     </div>
-                    <div class="mb-2"><label class="form-label">Subjects (from selected batch's course)</label>
-                        <select class="form-control" name="subjects[]" id="assignmentSubjects" multiple size="6" disabled></select>
-                        <small class="text-muted d-block mt-2"><em>Subjects are loaded for reference but not currently saved with assignments.</em></small>
+                    <div class="mb-2">
+                        <label class="form-label">Subjects (from selected batch's course)</label>
+                        <div class="table-responsive" id="assignmentSubjectsTableWrapper" style="display:none;">
+                            <table class="table table-sm table-bordered" id="assignmentSubjectsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th width="80" class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="assignmentSubjectsContainer">
+                                    <!-- dynamic subject rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" id="addSubjectRowBtn" class="btn btn-sm btn-outline-primary">Add Subject</button>
+                            <small class="text-muted ms-2">Select subjects for this assignment.</small>
+                        </div>
                     </div>
                     
                     <div class="mb-2"><label class="form-label">Assigned At</label>
