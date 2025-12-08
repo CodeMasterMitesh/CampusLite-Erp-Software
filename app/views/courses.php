@@ -19,7 +19,7 @@ $subjects = SubjectController::getAll();
     $page_icon = 'fas fa-book';
     $page_title = 'Courses';
     $show_actions = false;
-    $add_button = ['label' => 'Add New Course', 'onclick' => "showAddModal('addCourseModal','addCourseForm')"]; 
+    $add_button = ['label' => 'Add New Course', 'onclick' => 'showAddCourseModal()'];
     include __DIR__ . '/partials/page-header.php';
     ?>
     <div class="advanced-table-container">
@@ -34,18 +34,19 @@ $subjects = SubjectController::getAll();
                         <th>Description</th>
                         <th>Total Fee</th>
                         <th>Duration (months)</th>
+                        <th>File</th>
                         <th width="150" class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
                     <?php if (empty($courses)): ?>
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No courses found</h4>
                                     <p>No courses match your search criteria</p>
-                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                                    <button class="btn btn-primary" onclick="showAddCourseModal()">
                                         <i class="fas fa-plus"></i> Add First Course
                                     </button>
                                 </div>
@@ -69,6 +70,15 @@ $subjects = SubjectController::getAll();
                                 <td data-label="Description"><?= htmlspecialchars($course['description'] ?? '') ?></td>
                                 <td data-label="Total Fee"><?= htmlspecialchars($course['total_fee'] ?? '') ?></td>
                                 <td data-label="Duration"><?= htmlspecialchars($course['duration_months'] ?? '') ?> months</td>
+                                <td data-label="File">
+                                    <?php if (!empty($course['file_path'])): ?>
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewCourseFile(<?= $course['id'] ?? 0 ?>)" title="View File">
+                                            <i class="fas fa-file"></i>
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td data-label="Actions">
                                     <div class="table-actions">
                                         <button class="btn btn-sm btn-outline-primary btn-table" onclick="editCourse(<?= $course['id'] ?? 0 ?>)" title="Edit"><i class="fas fa-edit"></i></button>
@@ -124,27 +134,55 @@ $subjects = SubjectController::getAll();
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">Subjects</label>
-                            <div id="subjects-dynamic" class="row g-2">
-                                <div class="subject-row col-md-4 mb-2 d-flex align-items-center">
-                                    <select class="form-control" name="subjects[]">
-                                        <?php foreach ($subjects as $subject): ?>
-                                            <option value="<?= intval($subject['id']) ?>"><?= htmlspecialchars($subject['title']) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2 delete-subject-btn" title="Remove"><i class="fas fa-trash"></i></button>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addSubjectDropdown"><i class="fas fa-plus"></i> Add More</button>
+                            <div id="courseSubjectsContainer"></div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addSubjectRowBtn"><i class="fas fa-plus"></i> Add Subject</button>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Course Materials/Documents</label>
+                            <input type="file" class="form-control" name="course_file" id="courseFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx">
+                            <small class="text-muted">Upload PDF, Word, PowerPoint, or Excel files (Max 10MB)</small>
+                            <div id="currentFileDisplay" class="mt-2"></div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveCourse()">Save Course</button>
+                <button type="button" class="btn btn-primary" id="saveCourseBtn" onclick="saveCourse()">Save Course</button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- File Viewer Modal -->
+<div class="modal fade" id="fileViewerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-file me-2"></i> Course File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="fileViewerContent" style="min-height: 500px;">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a id="downloadFileBtn" href="#" download class="btn btn-primary" target="_blank">
+                    <i class="fas fa-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Inject CSRF token for API calls
+    window.__csrfToken = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+</script>
 <script src="/public/assets/js/courses.js"></script>

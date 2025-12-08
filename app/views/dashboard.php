@@ -9,6 +9,12 @@ $branches = BranchController::getAll();
 $users = UserController::getAll();
 $courses = CourseController::getAll();
 
+// Create branch map for easy lookup
+$branchMap = [];
+foreach ($branches as $b) {
+    $branchMap[$b['id']] = $b['name'];
+}
+
 // Precompute branch-wise counts (students and faculty)
 $branchStats = [];
 foreach ($branches as $b) {
@@ -145,6 +151,7 @@ foreach ($branches as $b) {
                                         $capacity = intval($c['total_capacity'] ?? 0);
                                         $enrolled = intval($c['enrolled_count'] ?? 0);
                                         $seats_left = max(0, $capacity - $enrolled);
+                                        $branchName = $branchMap[$c['branch_id']] ?? 'N/A';
                                     ?>
                                     <li class="col">
                                         <div class="p-3 border rounded h-100 course-card-item">
@@ -153,8 +160,15 @@ foreach ($branches as $b) {
                                                 <span class="badge bg-secondary ms-2"><?= htmlspecialchars($c['duration_months'] ?? '') ?> mo</span>
                                             </div>
                                             <div class="text-muted small mb-2">
-                                                <i class="fas fa-code-branch me-1"></i>Branch: <?= intval($c['branch_id'] ?: 0) ?>
+                                                <i class="fas fa-code-branch me-1"></i><?= htmlspecialchars($branchName) ?>
                                             </div>
+                                            <?php if (!empty($c['file_path'])): ?>
+                                                <div class="mb-2">
+                                                    <button class="btn btn-sm btn-outline-info w-100" onclick="viewDashboardCourseFile(<?= $c['id'] ?>)">
+                                                        <i class="fas fa-file-pdf me-1"></i> View Course Material
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
                                             <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
                                                 <div class="small text-muted">
                                                     <i class="fas fa-money-bill-wave me-1"></i><?= htmlspecialchars($c['total_fee'] ?? '0.00') ?>
@@ -637,6 +651,83 @@ document.addEventListener('DOMContentLoaded', function() {
     if (remindersEl) {
         window.renderDashboardReminders(remindersEl);
     }
+
+    // Function to view course files from dashboard
+    window.viewDashboardCourseFile = async function(courseId) {
+        try {
+            const res = await fetch(`api/courses.php?action=get&id=${courseId}`);
+            const data = await res.json();
+            
+            if (data.success && data.data && data.data.file_path) {
+                const filePath = data.data.file_path;
+                const fileName = data.data.file_name || filePath.split('/').pop();
+                const fileExt = fileName.split('.').pop().toLowerCase();
+                
+                const modalEl = document.getElementById('dashboardFileViewerModal');
+                if (!modalEl) return;
+                
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                const content = document.getElementById('dashboardFileViewerContent');
+                const downloadBtn = document.getElementById('dashboardDownloadFileBtn');
+                
+                // Set download link
+                downloadBtn.href = filePath;
+                downloadBtn.download = fileName;
+                
+                // Display based on file type
+                if (fileExt === 'pdf') {
+                    content.innerHTML = `<iframe src="${filePath}" style="width:100%; height:600px; border:none;"></iframe>`;
+                } else if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExt)) {
+                    content.innerHTML = `<img src="${filePath}" class="img-fluid" alt="${fileName}">`;
+                } else {
+                    content.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-file fa-5x text-muted mb-3"></i>
+                            <h5>${fileName}</h5>
+                            <p class="text-muted">Preview not available for this file type</p>
+                            <a href="${filePath}" download="${fileName}" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Download File
+                            </a>
+                        </div>
+                    `;
+                }
+                
+                modal.show();
+            } else {
+                alert('File not found');
+            }
+        } catch (e) {
+            console.error('Failed to load file:', e);
+            alert('Failed to load file');
+        }
+    };
 });
 </script>
+
+<!-- File Viewer Modal for Dashboard -->
+<div class="modal fade" id="dashboardFileViewerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-file me-2"></i> Course Material</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="dashboardFileViewerContent" style="min-height: 500px;">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a id="dashboardDownloadFileBtn" href="#" download class="btn btn-primary" target="_blank">
+                    <i class="fas fa-download"></i> Download
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
