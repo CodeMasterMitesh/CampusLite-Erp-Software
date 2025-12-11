@@ -29,21 +29,24 @@ $totalPages = 1;
             <table class="table data-table" id="attendance-table">
                 <thead>
                     <tr>
-                        <th width="80">ID</th>
+                        <th width="60">ID</th>
                         <th>Student</th>
+                        <th>Batch</th>
+                        <th>Branch</th>
                         <th>Date</th>
                         <th>Status</th>
+                        <th>Notes</th>
                         <th width="150" class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
                     <?php if (empty($attendance)): ?>
                         <tr>
-                            <td colspan="5">
+                            <td colspan="8">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
                                     <h4>No attendance records found</h4>
-                                    <p>No attendance records match your search criteria</p>
+                                    <p>No student attendance records available</p>
                                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
                                         <i class="fas fa-plus"></i> Mark First Attendance
                                     </button>
@@ -54,17 +57,25 @@ $totalPages = 1;
                         <?php foreach ($attendance as $record): ?>
                             <tr>
                                 <td><?= htmlspecialchars($record['id'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($record['student'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($record['date'] ?? '') ?></td>
                                 <td>
-                                    <?php if (isset($record['status'])): ?>
-                                        <span class="status-badge <?= $record['status'] === 'present' ? 'status-active' : 'status-inactive' ?>">
-                                            <?= ucfirst($record['status']) ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="status-badge status-inactive">N/A</span>
+                                    <div class="fw-semibold"><?= htmlspecialchars($record['student_name'] ?? 'N/A') ?></div>
+                                    <?php if (!empty($record['student_email'])): ?>
+                                        <small class="text-muted"><?= htmlspecialchars($record['student_email']) ?></small>
                                     <?php endif; ?>
                                 </td>
+                                <td><?= htmlspecialchars($record['batch_title'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($record['branch_name'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($record['date'] ?? '') ?></td>
+                                <td>
+                                    <?php 
+                                    $status = $record['status'] ?? 'absent';
+                                    $badgeClass = $status === 'present' ? 'bg-success' : ($status === 'leave' ? 'bg-warning' : 'bg-danger');
+                                    ?>
+                                    <span class="badge <?= $badgeClass ?>">
+                                        <?= ucfirst($status) ?>
+                                    </span>
+                                </td>
+                                <td class="small text-muted"><?= htmlspecialchars($record['note'] ?? '-') ?></td>
                                 <td>
                                     <div class="table-actions">
                                         <button class="btn btn-sm btn-outline-primary btn-table" onclick="editAttendance(<?= $record['id'] ?? 0 ?>)" title="Edit">
